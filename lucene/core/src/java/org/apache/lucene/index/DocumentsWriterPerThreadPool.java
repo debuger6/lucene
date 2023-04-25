@@ -84,9 +84,11 @@ final class DocumentsWriterPerThreadPool implements Iterable<DocumentsWriterPerT
    */
   private synchronized DocumentsWriterPerThread newWriter() {
     assert takenWriterPermits >= 0;
+    // 只有当 takenWriterPermits == 0 时，才允许创还能 DWPT
     while (takenWriterPermits > 0) {
       // we can't create new DWPTs while not all permits are available
       try {
+        // 等待直到被 notify
         wait();
       } catch (InterruptedException ie) {
         throw new ThreadInterruptedException(ie);
@@ -115,6 +117,7 @@ final class DocumentsWriterPerThreadPool implements Iterable<DocumentsWriterPerT
   DocumentsWriterPerThread getAndLock() {
     synchronized (this) {
       ensureOpen();
+      // 先从 freeList 获取，如果 freeList 没有空闲的 DWPT，则生成新的 DWPT
       DocumentsWriterPerThread dwpt = freeList.poll(DocumentsWriterPerThread::tryLock);
       if (dwpt == null) {
         dwpt = newWriter();

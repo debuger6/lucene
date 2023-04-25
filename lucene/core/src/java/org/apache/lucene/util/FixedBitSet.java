@@ -265,6 +265,7 @@ public final class FixedBitSet extends BitSet {
     return val;
   }
 
+  // 这个方法会返回从 index(包含) 开始的第一个不为 0 的位对应的 doc id，如果不存在则返回 NO_MORE_DOCS
   @Override
   public int nextSetBit(int index) {
     // Depends on the ghost bits being clear!

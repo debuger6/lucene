@@ -292,6 +292,7 @@ final class DocumentsWriterFlushControl implements Accountable, Closeable {
      * that we don't stall/block if an ongoing or pending flush can
      * not free up enough memory to release the stall lock.
      */
+    // 疑问：这里为什么要满足 activeBytes < limit？
     final boolean stall = (activeBytes + flushBytes) > limit && activeBytes < limit && !closed;
 
     if (infoStream.isEnabled("DWFC")) {
@@ -383,6 +384,7 @@ final class DocumentsWriterFlushControl implements Accountable, Closeable {
     assert checkedOut;
   }
 
+  // 将 perThread 加入到 flushingWriters，同时将其从 pool 中移除
   private synchronized DocumentsWriterPerThread checkOutForFlush(
       DocumentsWriterPerThread perThread) {
     assert Thread.holdsLock(this);
@@ -415,6 +417,7 @@ final class DocumentsWriterFlushControl implements Accountable, Closeable {
         + "]";
   }
 
+  // 优先从 flushQueue 中取出 dwpt，如果 flushQueue 为空，再从 pool 中取状态为 flushPending 的 dwpt
   DocumentsWriterPerThread nextPendingFlush() {
     int numPending;
     boolean fullFlush;
@@ -427,11 +430,13 @@ final class DocumentsWriterFlushControl implements Accountable, Closeable {
       fullFlush = this.fullFlush;
       numPending = this.numPending;
     }
+    // 如果已经在 fullFlush，就不用进行 flush 检查
     if (numPending > 0 && fullFlush == false) { // don't check if we are doing a full flush
       for (final DocumentsWriterPerThread next : perThreadPool) {
         if (next.isFlushPending()) {
           if (next.tryLock()) {
             try {
+              // 这里二次检验 next 是否还在 pool 中，因为有可能它已经被其他线程处理了
               if (perThreadPool.isRegistered(next)) {
                 return checkOutForFlush(next);
               }

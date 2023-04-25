@@ -82,8 +82,8 @@ final class IndexingChain implements Accountable {
   private long nextFieldGen;
 
   // Holds fields seen in each document
-  private PerField[] fields = new PerField[1];
-  private PerField[] docFields = new PerField[2];
+  private PerField[] fields = new PerField[1]; // 记录每个文档中 field 信息，如果 field 在文档中出现多次，这里只会存一次
+  private PerField[] docFields = new PerField[2]; // 和上述类似，区别是有 field 在文档中出现多少次就会存多少次，下标和 field 出现在文档中的下标保持一致
   private final InfoStream infoStream;
   private final ByteBlockPool.Allocator byteBlockAllocator;
   private final LiveIndexWriterConfig indexWriterConfig;
@@ -572,6 +572,7 @@ final class IndexingChain implements Accountable {
       // also count the number of unique fields indexed with postings
       docFieldIdx = 0;
       for (IndexableField field : document) {
+        // 从这里就知道为什么需要 docFields，其作用让 field 和 perField 一一对应
         if (processField(docID, field, docFields[docFieldIdx])) {
           fields[indexedFieldCount] = docFields[docFieldIdx];
           indexedFieldCount++;
@@ -734,9 +735,11 @@ final class IndexingChain implements Accountable {
   private PerField getOrAddPerField(String fieldName) {
     final int hashPos = fieldName.hashCode() & hashMask;
     PerField pf = fieldHash[hashPos];
+    // fieldHash 是一个哈希表，不同的 fieldName 可能会落到同一个 bucket，采用拉链的方式解决冲突
     while (pf != null && pf.fieldName.equals(fieldName) == false) {
       pf = pf.next;
     }
+    // fieldName 第一次出现在当前 segment，创建对应的 pf
     if (pf == null) {
       // first time we encounter field with this name in this segment
       FieldSchema schema = new FieldSchema(fieldName);

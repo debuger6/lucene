@@ -124,7 +124,7 @@ final class DocumentsWriterPerThread implements Accountable {
 
   private final FieldInfos.Builder fieldInfos;
   private final InfoStream infoStream;
-  private int numDocsInRAM;
+  private int numDocsInRAM; // 当前DWPT内存中的文档数
   final DocumentsWriterDeleteQueue deleteQueue;
   private final DeleteSlice deleteSlice;
   private final NumberFormat nf = NumberFormat.getInstance(Locale.ROOT);
@@ -239,8 +239,10 @@ final class DocumentsWriterPerThread implements Accountable {
           // vs non-aborting exceptions):
           reserveOneDoc();
           try {
+            // 文档号用 numDocsInRAM，然后再自增1
             indexingChain.processDocument(numDocsInRAM++, doc);
           } finally {
+            // 细节：这里会对 DocumentsWriter.numDocsInRAM 加1，实际执行的是 DocumentsWriter.numDocsInRAM::incrementAndGet
             onNewDocOnRAM.run();
           }
         }

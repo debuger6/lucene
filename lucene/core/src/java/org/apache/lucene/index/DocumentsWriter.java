@@ -89,6 +89,7 @@ final class DocumentsWriter implements Closeable, Accountable {
 
   private final LiveIndexWriterConfig config;
 
+  // 这里统计的是整个 DW 的文档数，包含了 DW 下所有 DWPT 的文档，注意和 DWPT 的 numDocsInRAM 区分
   private final AtomicInteger numDocsInRAM = new AtomicInteger(0);
 
   // TODO: cut over to BytesRefHash in BufferedDeletes
@@ -384,6 +385,9 @@ final class DocumentsWriter implements Closeable, Accountable {
   private boolean preUpdate() throws IOException {
     ensureOpen();
     boolean hasEvents = false;
+    // 这里会判断是否触发 flush，触发条件有如下两种情况：
+    // 1. 有线程阻塞，说明 flush 速度跟不上写入速度，需要限流
+    // 2. flushQueue 中有线程等待 flush 且配置了写入时检查 Pending flush
     while (flushControl.anyStalledThreads()
         || (flushControl.numQueuedFlushes() > 0 && config.checkPendingFlushOnUpdate)) {
       // Help out flushing any queued DWPTs so we can un-stall:
@@ -417,8 +421,10 @@ final class DocumentsWriter implements Closeable, Accountable {
       final Iterable<? extends Iterable<? extends IndexableField>> docs,
       final DocumentsWriterDeleteQueue.Node<?> delNode)
       throws IOException {
+    // 这个方法里面会去检查要不要触发 flush
     boolean hasEvents = preUpdate();
 
+    // 写入时，要获取一个 DWPT，同一个 DWPT 同时只能被一个线程获取
     final DocumentsWriterPerThread dwpt = flushControl.obtainAndLock();
     final DocumentsWriterPerThread flushingDWPT;
     long seqNo;
@@ -436,6 +442,7 @@ final class DocumentsWriter implements Closeable, Accountable {
         }
       }
       final boolean isUpdate = delNode != null && delNode.isDelete();
+      // 这里面会检查是否需要 flush
       flushingDWPT = flushControl.doAfterDocument(dwpt, isUpdate);
     } finally {
       if (dwpt.isFlushPending() || dwpt.isAborted()) {
@@ -446,6 +453,7 @@ final class DocumentsWriter implements Closeable, Accountable {
       assert dwpt.isHeldByCurrentThread() == false : "we didn't release the dwpt even on abort";
     }
 
+    // 如果 flushingDWPT 不为 null，这里面会触发 flush
     if (postUpdate(flushingDWPT, hasEvents)) {
       seqNo = -seqNo;
     }
