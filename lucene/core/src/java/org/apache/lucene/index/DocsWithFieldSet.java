@@ -31,7 +31,7 @@ public final class DocsWithFieldSet extends DocIdSet {
   private static long BASE_RAM_BYTES_USED =
       RamUsageEstimator.shallowSizeOfInstance(DocsWithFieldSet.class);
 
-  private FixedBitSet set;
+  private FixedBitSet set; // 如果所有文档都包含该字段，则 set 为 null
   private int cardinality = 0;
   private int lastDocId = -1;
 

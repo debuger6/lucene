@@ -57,6 +57,23 @@ import org.apache.lucene.util.BytesRef;
  * IndexableFieldType will impact any Field it is used in. It is strongly recommended that no
  * changes be made after Field instantiation.
  */
+// Field 相当于数据库中的字段，是数据索引的基本单位，lucene 提供了多种 Field 分别对应不同的字段类型
+// 以下字段是 lucene 内置的字段
+// TextField 字段值为字符串，这种字段会对内容分词，索引时会对分词建立倒排索引，可以选择 Store 或者 No Store，常用于全文检索场景
+// StringField 字段值为字符串，这种字段不分词，整个内容当做一个关键词处理，索引时会对整个内容建立倒排索引，可以选择 Store 或者 No Store，常用于精确查询场景
+// IntPoint 字段值为整型数值，索引时会对内容建立 point 索引（也是倒排，数据结构时 bkd tree）
+// LongPoint 字段值为长整型数值，其他同上
+// FloatPoint 字段值为浮点型，其他同上
+// DoublePoint 字段值为双精度浮点型，其他同上
+
+// 以下为列存（DocValues）字段
+// SortedDocValuesField 字段值为 byte[]，索引时会对值建立 DocValues，一个 Document 中，只能包含一个同名的 SortedDocValuesField 字段
+// SortedSetDocValuesField 同上，一个 Document 中，可以包含多个同名的 SortedSetDocValuesField 字段
+// NumericDocValuesField 字段值为 long，索引时会对值建立 DocValues，一个 Document 中，只能包含一个同名的 NumericDocValuesField 字段
+// SortedNumericDocValuesField 同上，一个 Document 中，可以包含多个同名的 SortedNumericDocValuesField 字段
+
+// StoredField 行存字段，字段值为 byte[]
+
 public class Field implements IndexableField {
 
   /** Field's type */

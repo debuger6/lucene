@@ -242,7 +242,7 @@ final class DocumentsWriterPerThread implements Accountable {
             // 文档号用 numDocsInRAM，然后再自增1
             indexingChain.processDocument(numDocsInRAM++, doc);
           } finally {
-            // 细节：这里会对 DocumentsWriter.numDocsInRAM 加1，实际执行的是 DocumentsWriter.numDocsInRAM::incrementAndGet
+            // 细节：这里每处理完一个文档会对 DocumentsWriter.numDocsInRAM 加1，实际执行的是 DocumentsWriter.numDocsInRAM::incrementAndGet
             onNewDocOnRAM.run();
           }
         }

@@ -31,11 +31,11 @@ import org.apache.lucene.util.packed.PackedLongValues;
 /** Buffers up pending long per doc, then flushes when segment flushes. */
 class NumericDocValuesWriter extends DocValuesWriter<NumericDocValues> {
 
-  private final PackedLongValues.Builder pending;
-  private PackedLongValues finalValues;
+  private final PackedLongValues.Builder pending; // field 字段值集合
+  private PackedLongValues finalValues; // 由 pending 生成
   private final Counter iwBytesUsed;
   private long bytesUsed;
-  private DocsWithFieldSet docsWithField;
+  private DocsWithFieldSet docsWithField; // 包含该 field 的 doc id 集合
   private final FieldInfo fieldInfo;
   private int lastDocID = -1;
 

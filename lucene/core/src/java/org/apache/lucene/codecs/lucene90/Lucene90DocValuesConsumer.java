@@ -129,8 +129,8 @@ final class Lucene90DocValuesConsumer extends DocValuesConsumer {
   @Override
   public void addNumericField(FieldInfo field, DocValuesProducer valuesProducer)
       throws IOException {
-    meta.writeInt(field.number);
-    meta.writeByte(Lucene90DocValuesFormat.NUMERIC);
+    meta.writeInt(field.number); // 4 Bytes FieldNumber
+    meta.writeByte(Lucene90DocValuesFormat.NUMERIC); // 1 Byte DocValues type
 
     writeValues(
         field,
@@ -211,7 +211,7 @@ final class Lucene90DocValuesConsumer extends DocValuesConsumer {
             // GCD computation for them
             gcd = 1;
           } else {
-            gcd = MathUtil.gcd(gcd, v - firstValue);
+            gcd = MathUtil.gcd(gcd, v - firstValue); // gcd(a, b) = gcd(a, |b-a|)
           }
         }
 

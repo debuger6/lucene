@@ -66,8 +66,12 @@ public class Engine {
         this.writer.addDocuments(documents);
     }
 
-    public void flush() throws IOException {
+    public void commit() throws IOException {
         this.writer.commit();
+    }
+
+    public void flush() throws IOException {
+        this.writer.flush();
     }
 
     public void close() throws IOException {
