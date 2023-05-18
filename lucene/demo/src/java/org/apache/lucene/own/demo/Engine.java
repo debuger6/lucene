@@ -23,20 +23,15 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.queryparser.classic.ParseException;
-import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.MMapDirectory;
 
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
+
+import static org.apache.lucene.index.IndexWriterConfig.OpenMode.CREATE;
 
 public class Engine {
     // 用于索引的基本数据结构
@@ -53,6 +48,7 @@ public class Engine {
         // 注：用 SimpleTextCodec 可以读懂数据文件内容，便于学习
         // 初始化 IndexWriter
         IndexWriterConfig config = new IndexWriterConfig(analyzer).setUseCompoundFile(false);
+        config.setOpenMode(CREATE);
         this.writer = new IndexWriter(directory, config);
     }
 
@@ -78,5 +74,10 @@ public class Engine {
         this.writer.close();
         this.analyzer.close();
         this.directory.close();
+   }
+
+   public List<LeafReaderContext> leaves() throws IOException {
+       DirectoryReader reader = DirectoryReader.open(this.writer);
+       return reader.getContext().leaves();
    }
 }

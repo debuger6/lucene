@@ -196,8 +196,8 @@ final class Lucene90DocValuesConsumer extends DocValuesConsumer {
     }
     values = valuesProducer.getSortedNumeric(field);
     int numDocsWithValue = 0;
-    MinMaxTracker minMax = new MinMaxTracker();
-    MinMaxTracker blockMinMax = new MinMaxTracker();
+    MinMaxTracker minMax = new MinMaxTracker(); // 跟踪整个 segment 的最大最小值
+    MinMaxTracker blockMinMax = new MinMaxTracker(); // 跟踪当前 block 的最大最小值，目的是统计按多 block 存储所需的空间开销
     long gcd = 0;
     Set<Long> uniqueValues = ords ? null : new HashSet<>();
     for (int doc = values.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = values.nextDoc()) {
@@ -346,9 +346,9 @@ final class Lucene90DocValuesConsumer extends DocValuesConsumer {
       for (int i = 0, count = values.docValueCount(); i < count; ++i) {
         long v = values.nextValue();
         if (encode == null) {
-          writer.add((v - min) / gcd);
+          writer.add((v - min) / gcd); // 差值&最大公约数编码
         } else {
-          writer.add(encode.get(v));
+          writer.add(encode.get(v)); // 字典编码
         }
       }
     }
