@@ -318,7 +318,7 @@ public class DirectReader {
     @Override
     public long get(long index) {
       try {
-        long offset = (index * 20) >>> 3;
+        long offset = (index * 20) >>> 3; // numberBitsPerValue 为 20，右移 3 位转成字节，注意这里 index 为基数时，offset 其实不是 value 的起始位置，下面会通过 shift 得到真实的值，这块会在 NumericValues 读取文章中解释
         int shift = (int) (index & 1) << 2;
         return (in.readInt(this.offset + offset) >>> shift) & 0xFFFFF;
       } catch (IOException e) {

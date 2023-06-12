@@ -267,7 +267,7 @@ final class DocumentsWriterFlushControl implements Accountable, Closeable {
   synchronized void doAfterFlush(DocumentsWriterPerThread dwpt) {
     assert flushingWriters.contains(dwpt);
     try {
-      flushingWriters.remove(dwpt);
+      flushingWriters.remove(dwpt); // 从 flush queue 中移除
       flushBytes -= dwpt.getLastCommittedBytesUsed();
       assert assertMemory();
     } finally {

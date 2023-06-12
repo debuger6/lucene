@@ -23,56 +23,32 @@ import java.util.List;
 import java.util.Random;
 
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.own.demo.Engine;
 import org.apache.lucene.own.demo.utils.Utils;
 
-public class NumericDocValuesFieldDemo {
-  static class Row {
-    final Field field1;
-    final Field field2;
-    final Field field3;
-
-    Row(long value1, long value2, long value3) {
-      this.field1 = new NumericDocValuesField("field1", value1);
-      this.field2 = new NumericDocValuesField("field2", value2);
-      this.field3 = new NumericDocValuesField("field3", value3);
-    }
-
-    Document document() {
-      Document doc = new Document();
-      if (field1.numericValue().longValue() != -1L) {
-        doc.add(field1);
-      }
-      if (field2.numericValue().longValue() != -1L) {
-        doc.add(field2);
-      }
-      if (field3.numericValue().longValue() != -1L) {
-        doc.add(field3);
-      }
-      return doc;
-    }
-  }
+public class SortedNumericDocValuesDemo {
   public static void main(String[] args) throws IOException {
-    Engine engine = Utils.engine("./data/numeric_doc_value_demo");
+    Engine engine = Utils.engine("./data/sorted_numeric_doc_value_demo");
     engine.batchIndex(genDocs(1));
+    engine.commit();
+    engine.batchIndex(genDocs(2));
     engine.commit();
 
     List<LeafReaderContext> leaves = engine.leaves();
     for (LeafReaderContext leaf : leaves) {
-      NumericDocValues numericDocValues = leaf.reader().getNumericDocValues("field2");
+      SortedNumericDocValues numericDocValues = leaf.reader().getSortedNumericDocValues("field1");
       //numericDocValues.advanceExact(10000);
-      if (numericDocValues.advanceExact(3 * (1 << 16) + 65530)) {
-        System.out.println(numericDocValues.longValue());
+      if (numericDocValues.advanceExact(3 * (1 << 16) + 65086)) {
+        int docCount = numericDocValues.docValueCount();
+        for (int i =0 ; i < docCount; i++) {
+          System.out.println(numericDocValues.nextValue());
+        }
       }
     }
   }
 
-  // 生成 IndexedDISI block 稠密度为 blockType 的文档集合
-  // blockType 枚举值为 0,1,2; 0 代表稠密度为 ALL; 1 代表稠密度为 DENSE; 2 代表稠密度为 SPARSE
   public static List<Document> genDocs(int blockType) {
     List<Document> docs = new ArrayList<>();
     Random r = new Random();
@@ -81,23 +57,23 @@ public class NumericDocValuesFieldDemo {
       for (int i = 0; i < 1 << 16; i++) {
         // 制造一种特殊场景：block 0 为空
         if (block == 0) {
-          docs.add(new Row(-1, -1, -1).document());
+          docs.add(new NumericRow(new long[]{-1}, new long[]{-1}, new long[]{-1}).document());
           continue;
         }
 
         // 制造 dense block：每个 block 的第 20000 个 doc 空缺
         if (blockType == 1 && i == 20000) {
-          docs.add(new Row(-1, -1, -1).document());
+          docs.add(new NumericRow(new long[]{-1}, new long[]{-1}, new long[]{-1}).document());
           continue;
         }
 
         // 制造 sparse block：每个 block 的文档个数为 4095
         if (blockType == 2 && i >= 4095) {
-          docs.add(new Row(-1, -1, -1).document());
+          docs.add(new NumericRow(new long[]{-1}, new long[]{-1}, new long[]{-1}).document());
           continue;
         }
 
-        docs.add(new Row(r.nextInt(100000), r.nextInt(100000), r.nextInt(100000)).document());
+        docs.add(new NumericRow(new long[]{r.nextInt(100000), r.nextInt(100000)}, new long[]{r.nextInt(100000), r.nextInt(100000)}, new long[]{r.nextInt(100000), r.nextInt(100000)}).document());
       }
     }
     return docs;

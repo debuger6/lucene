@@ -187,7 +187,7 @@ final class Lucene90DocValuesConsumer extends DocValuesConsumer {
 
   private long[] writeValues(FieldInfo field, DocValuesProducer valuesProducer, boolean ords)
       throws IOException {
-    SortedNumericDocValues values = valuesProducer.getSortedNumeric(field);
+    SortedNumericDocValues values = valuesProducer.getSortedNumeric(field); // 获取 field 对应的 docValues
     final long firstValue;
     if (values.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
       firstValue = values.nextValue();
@@ -309,7 +309,7 @@ final class Lucene90DocValuesConsumer extends DocValuesConsumer {
               && min > 0
               && DirectWriter.unsignedBitsRequired(max)
                   == DirectWriter.unsignedBitsRequired(max - min)) {
-            min = 0;
+            min = 0; // 这样做有什么好处？
           }
           meta.writeInt(-1); // tablesize
         }
@@ -710,7 +710,7 @@ final class Lucene90DocValuesConsumer extends DocValuesConsumer {
     assert numValues >= numDocsWithField;
 
     meta.writeInt(numDocsWithField);
-    if (numValues > numDocsWithField) {
+    if (numValues > numDocsWithField) { // 存在多值
       long start = data.getFilePointer();
       meta.writeLong(start);
       meta.writeVInt(DIRECT_MONOTONIC_BLOCK_SHIFT);
@@ -719,7 +719,7 @@ final class Lucene90DocValuesConsumer extends DocValuesConsumer {
           DirectMonotonicWriter.getInstance(
               meta, data, numDocsWithField + 1L, DIRECT_MONOTONIC_BLOCK_SHIFT);
       long addr = 0;
-      addressesWriter.add(addr);
+      addressesWriter.add(addr); // 记录每个 doc 在 values 的边界，划分哪些 values 属于哪个 doc
       SortedNumericDocValues values = valuesProducer.getSortedNumeric(field);
       for (int doc = values.nextDoc();
           doc != DocIdSetIterator.NO_MORE_DOCS;

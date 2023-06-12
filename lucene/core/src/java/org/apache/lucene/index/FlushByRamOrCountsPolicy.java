@@ -60,6 +60,8 @@ class FlushByRamOrCountsPolicy extends FlushPolicy {
     }
   }
 
+  // 自动fush条件: 1. 如何按文档数来触发，那么当当前 dwpt 在内存中的文档数超过阈值则将当前 dwpt 设为 flushPending
+  // 2. 如果按内存大小来触发，那么当整个 indexWriter 的内存大小超过阈值，则选取 indexWriter 中内存使用最大的 dwpt 设为 flushPending
   @Override
   public void onInsert(DocumentsWriterFlushControl control, DocumentsWriterPerThread perThread) {
     if (flushOnDocCount()

@@ -31,7 +31,9 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.List;
 
+import static org.apache.lucene.index.IndexWriterConfig.OpenMode.APPEND;
 import static org.apache.lucene.index.IndexWriterConfig.OpenMode.CREATE;
+import static org.apache.lucene.index.IndexWriterConfig.OpenMode.CREATE_OR_APPEND;
 
 public class Engine {
     // 用于索引的基本数据结构

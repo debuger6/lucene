@@ -574,14 +574,14 @@ final class Lucene90DocValuesProducer extends DocValuesProducer {
             return new SparseNumericDocValues(disi) {
               @Override
               public long longValue() throws IOException {
-                return table[(int) values.get(disi.index())];
+                return table[(int) values.get(disi.index())]; // 字典解码
               }
             };
           } else if (entry.gcd == 1 && entry.minValue == 0) {
             return new SparseNumericDocValues(disi) {
               @Override
               public long longValue() throws IOException {
-                return values.get(disi.index());
+                return values.get(disi.index()); // 这种情况是所见即所得，反会的就是原始值
               }
             };
           } else {
@@ -590,7 +590,7 @@ final class Lucene90DocValuesProducer extends DocValuesProducer {
             return new SparseNumericDocValues(disi) {
               @Override
               public long longValue() throws IOException {
-                return mul * values.get(disi.index()) + delta;
+                return mul * values.get(disi.index()) + delta; // 差值&最大公约数解码
               }
             };
           }

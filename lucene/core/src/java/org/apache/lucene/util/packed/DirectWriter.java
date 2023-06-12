@@ -127,11 +127,11 @@ public final class DirectWriter {
     } else {
       // bitsPerValue is 12, 20 or 28
       // Write values 2 by 2
-      final int numBytesFor2Values = bitsPerValue * 2 / Byte.SIZE;
+      final int numBytesFor2Values = bitsPerValue * 2 / Byte.SIZE; // 2 个为一组，肯定是整数字节
       for (int i = 0, o = 0; i < upTo; i += 2, o += numBytesFor2Values) {
         final long l1 = nextValues[i];
         final long l2 = nextValues[i + 1];
-        final long merged = l1 | (l2 << bitsPerValue);
+        final long merged = l1 | (l2 << bitsPerValue); // 下标为偶数的 value 放在低 bitsPerValue 位，下标为奇数的 value 放在 [bitsPerValue, 2*bitsPerValue)
         if (bitsPerValue <= Integer.SIZE / 2) {
           BitUtil.VH_LE_INT.set(nextBlocks, o, (int) merged);
         } else {

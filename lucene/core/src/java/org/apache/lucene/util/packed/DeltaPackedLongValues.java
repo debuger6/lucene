@@ -83,10 +83,10 @@ class DeltaPackedLongValues extends PackedLongValues {
     @Override
     void pack(long[] values, int numValues, int block, float acceptableOverheadRatio) {
       long min = values[0];
-      for (int i = 1; i < numValues; ++i) {
+      for (int i = 1; i < numValues; ++i) { // 找最小值
         min = Math.min(min, values[i]);
       }
-      for (int i = 0; i < numValues; ++i) {
+      for (int i = 0; i < numValues; ++i) { // 转成差值
         values[i] -= min;
       }
       super.pack(values, numValues, block, acceptableOverheadRatio);

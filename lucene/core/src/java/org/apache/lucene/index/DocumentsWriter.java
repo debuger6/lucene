@@ -445,10 +445,10 @@ final class DocumentsWriter implements Closeable, Accountable {
       // 这里面会检查是否需要 flush
       flushingDWPT = flushControl.doAfterDocument(dwpt, isUpdate);
     } finally {
-      if (dwpt.isFlushPending() || dwpt.isAborted()) {
+      if (dwpt.isFlushPending() || dwpt.isAborted()) { // 如果等待被 flush，那么解锁，让 flush 线程可以获得锁
         dwpt.unlock();
       } else {
-        perThreadPool.marksAsFreeAndUnlock(dwpt);
+        perThreadPool.marksAsFreeAndUnlock(dwpt); // dwpt 空闲，那么加入到 freelist，让其他线程可以使用
       }
       assert dwpt.isHeldByCurrentThread() == false : "we didn't release the dwpt even on abort";
     }

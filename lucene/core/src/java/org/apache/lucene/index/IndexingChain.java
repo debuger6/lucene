@@ -924,7 +924,7 @@ final class IndexingChain implements Accountable {
     }
   }
 
-  /** Called from processDocument to index one field's doc value */
+  /** Called from processDocument to index one field's doc value */ // 将 docValue 写入内存缓存
   private void indexDocValue(int docID, PerField fp, DocValuesType dvType, IndexableField field) {
     switch (dvType) {
       case NUMERIC:

@@ -479,8 +479,8 @@ public final class IndexedDISI extends DocIdSetIterator {
       final int offset =
           jumpTable.readInt(inRangeBlockIndex * (long) Integer.BYTES * 2 + Integer.BYTES); // 目标block的偏移
       this.nextBlockIndex = index - 1; // -1 to compensate for the always-added 1 in readBlockHeader
-      slice.seek(offset);
-      readBlockHeader();
+      slice.seek(offset); // 定位到 block
+      readBlockHeader(); // 读头部信息
       return;
     }
 
@@ -632,13 +632,13 @@ public final class IndexedDISI extends DocIdSetIterator {
       @Override
       boolean advanceExactWithinBlock(IndexedDISI disi, int target) throws IOException {
         final int targetInBlock = target & 0xFFFF; // block 内的偏移
-        final int targetWordIndex = targetInBlock >>> 6; // 定位具体 word
+        final int targetWordIndex = targetInBlock >>> 6; // 定位 block 内具体 word
 
         // If possible, skip ahead using the rank cache
         // If the distance between the current position and the target is < rank-longs
         // there is no sense in using rank
         if (disi.denseRankPower != -1
-            && targetWordIndex - disi.wordIndex >= (1 << (disi.denseRankPower - 6))) {
+            && targetWordIndex - disi.wordIndex >= (1 << (disi.denseRankPower - 6))) { // 目标word 和当前word相隔至少一个rank
           rankSkip(disi, targetInBlock);
         }
 
@@ -649,7 +649,7 @@ public final class IndexedDISI extends DocIdSetIterator {
         }
         disi.wordIndex = targetWordIndex;
 
-        long leftBits = disi.word >>> target; // 最低位的 bit 表示 target 是否存在
+        long leftBits = disi.word >>> target; // 此时 word 为 target word，最低位的 bit 表示 target 是否存在
         disi.index = disi.numberOfOnes - Long.bitCount(leftBits); // 计算 target doc 的段内偏移
         return (leftBits & 1L) != 0; // 最低位为 1 说明 target doc 存在
       }
@@ -709,7 +709,7 @@ public final class IndexedDISI extends DocIdSetIterator {
     long rankWord = disi.slice.readLong(); // 读出当前rank的第一个word
     int denseNOO = rank + Long.bitCount(rankWord);
 
-    disi.wordIndex = rankAlignedWordIndex;
+    disi.wordIndex = rankAlignedWordIndex; // 更新 wordIndex，这一步细节很重要，后面只需要统计 disi.wordIndex + 1 到 targe
     disi.word = rankWord;
     disi.numberOfOnes = disi.denseOrigoIndex + denseNOO;
   }

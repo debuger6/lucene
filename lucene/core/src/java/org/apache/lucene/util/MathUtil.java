@@ -60,6 +60,7 @@ public final class MathUtil {
    */
   // see
   // http://en.wikipedia.org/wiki/Binary_GCD_algorithm#Iterative_version_in_C.2B.2B_using_ctz_.28count_trailing_zeros.29
+  // 还可以参考 https://oi-wiki.org/math/number-theory/gcd/
   public static long gcd(long a, long b) {
     a = Math.abs(a);
     b = Math.abs(b);
@@ -68,7 +69,7 @@ public final class MathUtil {
     } else if (b == 0) {
       return a;
     }
-    final int commonTrailingZeros = Long.numberOfTrailingZeros(a | b);
+    final int commonTrailingZeros = Long.numberOfTrailingZeros(a | b); // 算出共同的后导0个数
     a >>>= Long.numberOfTrailingZeros(a);
     while (true) {
       b >>>= Long.numberOfTrailingZeros(b);
