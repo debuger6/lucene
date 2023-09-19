@@ -82,12 +82,15 @@ final class FreqProxTermsWriterPerField extends TermsHashPerField {
   }
 
   void writeProx(int termID, int proxCode) {
+    // 该 term 没有 payload, 将 proxCode 左移1位（最低位为0，代表没有 payload）, 追加到stream1
     if (payloadAttribute == null) {
       writeVInt(1, proxCode << 1);
     } else {
       BytesRef payload = payloadAttribute.getPayload();
       if (payload != null && payload.length > 0) {
+        // 存在 payload, 将 proxCode 左移1位，并将最低位置为 1, 表示存在 payload
         writeVInt(1, (proxCode << 1) | 1);
+        // 将 payload 的长度和内容追加到 stream1
         writeVInt(1, payload.length);
         writeBytes(1, payload.bytes, payload.offset, payload.length);
         sawPayloads = true;
@@ -97,6 +100,7 @@ final class FreqProxTermsWriterPerField extends TermsHashPerField {
     }
 
     assert postingsArray == freqProxPostingsArray;
+    // 更新 term 在当前处理文档中最后一次出现的位置
     freqProxPostingsArray.lastPositions[termID] = fieldState.position;
   }
 
@@ -254,8 +258,8 @@ final class FreqProxTermsWriterPerField extends TermsHashPerField {
     int[] termFreqs; // # times this term occurs in the current doc
     int[] lastDocIDs; // Last docID where this term occurred
     int[] lastDocCodes; // Code for prior doc
-    int[] lastPositions; // Last position where this term occurred
-    int[] lastOffsets; // Last endOffset where this term occurred
+    int[] lastPositions; // Last position where this term occurred in the current doc
+    int[] lastOffsets; // Last endOffset where this term occurred in the current doc
 
     @Override
     ParallelPostingsArray newInstance(int size) {

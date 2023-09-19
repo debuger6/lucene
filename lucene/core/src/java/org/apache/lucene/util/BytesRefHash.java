@@ -16,13 +16,14 @@
  */
 package org.apache.lucene.util;
 
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.lucene.util.ByteBlockPool.DirectAllocator;
+
 import static org.apache.lucene.util.ByteBlockPool.BYTE_BLOCK_MASK;
 import static org.apache.lucene.util.ByteBlockPool.BYTE_BLOCK_SHIFT;
 import static org.apache.lucene.util.ByteBlockPool.BYTE_BLOCK_SIZE;
-
-import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicLong;
-import org.apache.lucene.util.ByteBlockPool.DirectAllocator;
 
 /**
  * {@link BytesRefHash} is a special purpose hash-map like data-structure optimized for {@link
@@ -48,15 +49,15 @@ public final class BytesRefHash implements Accountable {
 
   // the following fields are needed by comparator,
   // so package private to prevent access$-methods:
-  final ByteBlockPool pool;
-  int[] bytesStart;
+  final ByteBlockPool pool; // 存储所有 BytesRef
+  int[] bytesStart; // 下标是 BytesRef 对应的 id，值是 BytesRef 在 ByteBlockPool 中的起始位置
 
   private int hashSize;
   private int hashHalfSize;
   private int hashMask;
   private int count;
   private int lastCount = -1;
-  private int[] ids;
+  private int[] ids; // 底层 hash 表，下标是 hash position，值是 BytesRef 对应的 id
   private final BytesStartArray bytesStartArray;
   private Counter bytesUsed;
 
@@ -266,7 +267,7 @@ public final class BytesRefHash implements Accountable {
         bytesStart = bytesStartArray.grow();
         assert count < bytesStart.length + 1 : "count: " + count + " len: " + bytesStart.length;
       }
-      e = count++;
+      e = count++; // termID
 
       bytesStart[e] = bufferUpto + pool.byteOffset;
 

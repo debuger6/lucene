@@ -21,6 +21,7 @@ description = 'Simple example code for Apache Lucene'
 
 dependencies {
   moduleImplementation project(':lucene:core')
+  moduleImplementation project(':lucene:codecs')
   moduleImplementation project(':lucene:facet')
   moduleImplementation project(':lucene:queries')
   moduleImplementation project(':lucene:analysis:common')
@@ -28,4 +29,6 @@ dependencies {
   moduleImplementation project(':lucene:expressions')
 
   moduleTestImplementation project(':lucene:test-framework')
+
+  implementation 'org.apache.commons:commons-lang3:3.13.0'
 }

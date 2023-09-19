@@ -45,8 +45,8 @@ abstract class TermsHashPerField implements Comparable<TermsHashPerField> {
   // This is initialized in the #addTerm method, either to a brand new per term stream if the term
   // is new or
   // to the addresses where the term stream was written to when we saw it the last time.
-  private int[] termStreamAddressBuffer;
-  private int streamAddressOffset;
+  private int[] termStreamAddressBuffer; // intPool 当前使用的 buffer
+  private int streamAddressOffset; // intPool 当前使用 buffer 的当前指向的位置
   private final int streamCount;
   private final String fieldName;
   final IndexOptions indexOptions;
@@ -159,8 +159,8 @@ abstract class TermsHashPerField implements Comparable<TermsHashPerField> {
       bytePool.nextBuffer();
     }
 
-    termStreamAddressBuffer = intPool.buffer;
-    streamAddressOffset = intPool.intUpto;
+    termStreamAddressBuffer = intPool.buffer; // intPool 当前使用的 buffer
+    streamAddressOffset = intPool.intUpto; // intPool 当前使用 buffer 的当前指向的位置
     intPool.intUpto += streamCount; // advance the pool to reserve the N streams for this term
 
     postingsArray.addressOffset[termID] = streamAddressOffset + intPool.intOffset;
@@ -169,8 +169,9 @@ abstract class TermsHashPerField implements Comparable<TermsHashPerField> {
       // initialize each stream with a slice we start with ByteBlockPool.FIRST_LEVEL_SIZE)
       // and grow as we need more space. see ByteBlockPool.LEVEL_SIZE_ARRAY
       final int upto = bytePool.newSlice(ByteBlockPool.FIRST_LEVEL_SIZE);
-      termStreamAddressBuffer[streamAddressOffset + i] = upto + bytePool.byteOffset;
+      termStreamAddressBuffer[streamAddressOffset + i] = upto + bytePool.byteOffset; // 记录 stream 在 ByteBlockPool 中的起始位置
     }
+    // 记录 termID 对应 stream 在 bytePool 中的起始位置
     postingsArray.byteStarts[termID] = termStreamAddressBuffer[streamAddressOffset];
     newTerm(termID, docID);
   }
@@ -214,11 +215,11 @@ abstract class TermsHashPerField implements Comparable<TermsHashPerField> {
   }
 
   final void writeByte(int stream, byte b) {
-    int streamAddress = streamAddressOffset + stream;
-    int upto = termStreamAddressBuffer[streamAddress];
+    int streamAddress = streamAddressOffset + stream; // stream 在 termStreamAddressBuffer 中的下标
+    int upto = termStreamAddressBuffer[streamAddress]; // stream 在 bytePool 中的当前偏移
     byte[] bytes = bytePool.buffers[upto >> ByteBlockPool.BYTE_BLOCK_SHIFT];
     assert bytes != null;
-    int offset = upto & ByteBlockPool.BYTE_BLOCK_MASK;
+    int offset = upto & ByteBlockPool.BYTE_BLOCK_MASK; // 得到 buffer 内偏移
     if (bytes[offset] != 0) {
       // End of slice; allocate a new one
       offset = bytePool.allocSlice(bytes, offset);
@@ -226,7 +227,7 @@ abstract class TermsHashPerField implements Comparable<TermsHashPerField> {
       termStreamAddressBuffer[streamAddress] = offset + bytePool.byteOffset;
     }
     bytes[offset] = b;
-    (termStreamAddressBuffer[streamAddress])++;
+    (termStreamAddressBuffer[streamAddress])++; // stream 在 bytePool 中的当前偏移后移
   }
 
   final void writeBytes(int stream, byte[] b, int offset, int len) {

@@ -100,7 +100,7 @@ public final class DirectMonotonicWriter {
 
     meta.writeLong(min);
     meta.writeInt(Float.floatToIntBits(avgInc));
-    meta.writeLong(data.getFilePointer() - baseDataPointer);
+    meta.writeLong(data.getFilePointer() - baseDataPointer); // 当前 block 的偏移相对起始位置的偏移，因为可能产生多个 block 所以需要记录每个 block 的相对偏移
     if (maxDelta == 0) {
       meta.writeByte((byte) 0);
     } else {
@@ -127,7 +127,7 @@ public final class DirectMonotonicWriter {
     if (v < previous) {
       throw new IllegalArgumentException("Values do not come in order: " + previous + ", " + v);
     }
-    if (bufferSize == buffer.length) {
+    if (bufferSize == buffer.length) { // 可以理解为满一个 block 便 flush
       flush();
     }
     buffer[bufferSize++] = v;

@@ -17,6 +17,10 @@
 
 package org.apache.lucene.own.demo;
 
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.List;
+
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -27,13 +31,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.MMapDirectory;
 
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.List;
-
-import static org.apache.lucene.index.IndexWriterConfig.OpenMode.APPEND;
 import static org.apache.lucene.index.IndexWriterConfig.OpenMode.CREATE;
-import static org.apache.lucene.index.IndexWriterConfig.OpenMode.CREATE_OR_APPEND;
 
 public class Engine {
     // 用于索引的基本数据结构
@@ -45,11 +43,11 @@ public class Engine {
         // 使用标准分词器
         this.analyzer = new StandardAnalyzer();
         this.directory = new MMapDirectory(Paths.get(dataPath));
-        //this.directory = new SimpleFSDirectory(Paths.get(dataPath));
 
         // 注：用 SimpleTextCodec 可以读懂数据文件内容，便于学习
         // 初始化 IndexWriter
         IndexWriterConfig config = new IndexWriterConfig(analyzer).setUseCompoundFile(false);
+        //config.setCodec(new SimpleTextCodec());
         config.setOpenMode(CREATE);
         this.writer = new IndexWriter(directory, config);
     }

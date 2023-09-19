@@ -16,11 +16,9 @@
  */
 package org.apache.lucene.index;
 
-import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
-import static org.apache.lucene.util.ByteBlockPool.BYTE_BLOCK_SIZE;
-
 import java.io.IOException;
 import java.util.Arrays;
+
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesProducer;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -31,6 +29,9 @@ import org.apache.lucene.util.BytesRefHash.DirectBytesStartArray;
 import org.apache.lucene.util.Counter;
 import org.apache.lucene.util.packed.PackedInts;
 import org.apache.lucene.util.packed.PackedLongValues;
+
+import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
+import static org.apache.lucene.util.ByteBlockPool.BYTE_BLOCK_SIZE;
 
 /**
  * Buffers up pending byte[] per doc, deref and sorting via int ord, then flushes when segment
@@ -115,9 +116,9 @@ class SortedDocValuesWriter extends DocValuesWriter<SortedDocValues> {
       int valueCount = hash.size();
       updateBytesUsed();
       assert finalOrdMap == null && finalOrds == null;
-      finalSortedValues = hash.sort();
+      finalSortedValues = hash.sort(); // 返回排序后的 terms 对应的 termIDs. 下标是 ord，值为 termID
       finalOrds = pending.build();
-      finalOrdMap = new int[valueCount];
+      finalOrdMap = new int[valueCount]; // 下标是 termID, 值是 ord
       for (int ord = 0; ord < valueCount; ord++) {
         finalOrdMap[finalSortedValues[ord]] = ord;
       }

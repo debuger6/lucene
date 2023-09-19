@@ -99,6 +99,7 @@ configurations {
 dependencies {
   // Use a newer groovy that doesn't have illegal reflective accesses.
   groovy "org.codehaus.groovy:groovy-all:3.0.12"
+  //implementation 'org.apache.commons:commons-lang3:3.0'
 }
 
 apply from: file('buildSrc/scriptDepVersions.gradle')

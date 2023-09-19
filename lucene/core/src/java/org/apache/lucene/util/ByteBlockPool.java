@@ -117,9 +117,9 @@ public final class ByteBlockPool implements Accountable {
   /** Where we are in head buffer */
   public int byteUpto = BYTE_BLOCK_SIZE;
 
-  /** Current head buffer */
+  /** Current head buffer */ // 当前正在使用的 buffer
   public byte[] buffer;
-  /** Current head offset */
+  /** Current head offset */ // 当前使用的 buffer 的起始位置在整个 pool 中的偏移
   public int byteOffset = -BYTE_BLOCK_SIZE;
 
   private final Allocator allocator;

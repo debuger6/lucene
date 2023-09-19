@@ -16,16 +16,13 @@
  */
 package org.apache.lucene.codecs.lucene90;
 
-import static org.apache.lucene.codecs.lucene90.Lucene90DocValuesFormat.DIRECT_MONOTONIC_BLOCK_SHIFT;
-import static org.apache.lucene.codecs.lucene90.Lucene90DocValuesFormat.NUMERIC_BLOCK_SHIFT;
-import static org.apache.lucene.codecs.lucene90.Lucene90DocValuesFormat.NUMERIC_BLOCK_SIZE;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesProducer;
@@ -56,6 +53,10 @@ import org.apache.lucene.util.StringHelper;
 import org.apache.lucene.util.compress.LZ4;
 import org.apache.lucene.util.packed.DirectMonotonicWriter;
 import org.apache.lucene.util.packed.DirectWriter;
+
+import static org.apache.lucene.codecs.lucene90.Lucene90DocValuesFormat.DIRECT_MONOTONIC_BLOCK_SHIFT;
+import static org.apache.lucene.codecs.lucene90.Lucene90DocValuesFormat.NUMERIC_BLOCK_SHIFT;
+import static org.apache.lucene.codecs.lucene90.Lucene90DocValuesFormat.NUMERIC_BLOCK_SIZE;
 
 /** writer for {@link Lucene90DocValuesFormat} */
 final class Lucene90DocValuesConsumer extends DocValuesConsumer {
@@ -199,7 +200,7 @@ final class Lucene90DocValuesConsumer extends DocValuesConsumer {
     MinMaxTracker minMax = new MinMaxTracker(); // 跟踪整个 segment 的最大最小值
     MinMaxTracker blockMinMax = new MinMaxTracker(); // 跟踪当前 block 的最大最小值，目的是统计按多 block 存储所需的空间开销
     long gcd = 0;
-    Set<Long> uniqueValues = ords ? null : new HashSet<>();
+    Set<Long> uniqueValues = ords ? null : new HashSet<>(); // 存 fieldValues 的唯一值，当 fieldValues 为 ords 时，不用走字典编码的逻辑，因为 ords 已经和字典编码后的值等价
     for (int doc = values.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = values.nextDoc()) {
       for (int i = 0, count = values.docValueCount(); i < count; ++i) {
         long v = values.nextValue();
@@ -221,7 +222,7 @@ final class Lucene90DocValuesConsumer extends DocValuesConsumer {
           blockMinMax.nextBlock();
         }
 
-        if (uniqueValues != null && uniqueValues.add(v) && uniqueValues.size() > 256) {
+        if (uniqueValues != null && uniqueValues.add(v) && uniqueValues.size() > 256) { // uniqueValues 容量最大为 256，超过以后不置null，意味着一定不会使用字典编码
           uniqueValues = null;
         }
       }
@@ -234,11 +235,11 @@ final class Lucene90DocValuesConsumer extends DocValuesConsumer {
     blockMinMax.finish();
 
     if (ords && minMax.numValues > 0) {
-      if (minMax.min != 0) {
+      if (minMax.min != 0) { // 如果存的 ords，那么一定是从 0 开始，所以最小值一定为 0
         throw new IllegalStateException(
             "The min value for ordinals should always be 0, got " + minMax.min);
       }
-      if (minMax.max != 0 && gcd != 1) {
+      if (minMax.max != 0 && gcd != 1) { // ords 是从 0 递增的，公约数一定为 1
         throw new IllegalStateException(
             "GCD compression should never be used on ordinals, found gcd=" + gcd);
       }
@@ -281,16 +282,16 @@ final class Lucene90DocValuesConsumer extends DocValuesConsumer {
       if (uniqueValues != null
           && uniqueValues.size() > 1
           && DirectWriter.unsignedBitsRequired(uniqueValues.size() - 1)
-              < DirectWriter.unsignedBitsRequired((max - min) / gcd)) {
+              < DirectWriter.unsignedBitsRequired((max - min) / gcd)) { // 字典编码每个value所需bits小于差值&最大公约数时，使用字典编码
         numBitsPerValue = DirectWriter.unsignedBitsRequired(uniqueValues.size() - 1);
         final Long[] sortedUniqueValues = uniqueValues.toArray(new Long[0]);
         Arrays.sort(sortedUniqueValues);
         meta.writeInt(sortedUniqueValues.length); // tablesize
-        for (Long v : sortedUniqueValues) {
+        for (Long v : sortedUniqueValues) { // 存有序的唯一值（index -> fieldValue），查询时根据下标返回 fieldValue
           meta.writeLong(v); // table[] entry
         }
-        encode = new HashMap<>();
-        for (int i = 0; i < sortedUniqueValues.length; ++i) {
+        encode = new HashMap<>(); // value -> index
+        for (int i = 0; i < sortedUniqueValues.length; ++i) { // value 到 index 的映射，dvd 中只需存 value 对应的 index，查询时根据 Meta 反查 fieldValue
           encode.put(sortedUniqueValues[i], i);
         }
         min = 0;
@@ -552,10 +553,10 @@ final class Lucene90DocValuesConsumer extends DocValuesConsumer {
     ByteBuffersDataOutput addressBuffer = new ByteBuffersDataOutput();
     ByteBuffersIndexOutput addressOutput =
         new ByteBuffersIndexOutput(addressBuffer, "temp", "temp");
-    long numBlocks = (size + blockMask) >>> shift;
+    long numBlocks = (size + blockMask) >>> shift; // data block 数
     DirectMonotonicWriter writer =
-        DirectMonotonicWriter.getInstance(
-            meta, addressOutput, numBlocks, DIRECT_MONOTONIC_BLOCK_SHIFT);
+        DirectMonotonicWriter.getInstance( // numBlocks 和 DIRECT_MONOTONIC_BLOCK_SHIFT 决定了 DirectMonotonicWriter 中 buffer 大小
+            meta, addressOutput, numBlocks, DIRECT_MONOTONIC_BLOCK_SHIFT); // DirectMonotonicWriter 的元数据会写入到 meta，数据写入到 addressOutput（addressBuffer）
 
     BytesRefBuilder previous = new BytesRefBuilder();
     long ord = 0;
@@ -568,11 +569,11 @@ final class Lucene90DocValuesConsumer extends DocValuesConsumer {
     int dictLength = 0;
 
     for (BytesRef term = iterator.next(); term != null; term = iterator.next()) {
-      if ((ord & blockMask) == 0) {
-        if (ord != 0) {
+      if ((ord & blockMask) == 0) { // block 的第一个 term
+        if (ord != 0) { // 不是第一个 block，flush 前一个 block
           // flush the previous block
           final int uncompressedLength =
-              compressAndGetTermsDictBlockLength(bufferedOutput, dictLength, ht);
+              compressAndGetTermsDictBlockLength(bufferedOutput, dictLength, ht); // 通过 LZ4 算法压缩 Block
           maxBlockLength = Math.max(maxBlockLength, uncompressedLength);
           bufferedOutput.reset(termsDictBuffer);
         }
@@ -580,19 +581,19 @@ final class Lucene90DocValuesConsumer extends DocValuesConsumer {
         writer.add(data.getFilePointer() - start);
         // Write the first term both to the index output, and to the buffer where we'll use it as a
         // dictionary for compression
-        data.writeVInt(term.length);
+        data.writeVInt(term.length); // 第一个 term 写原始长度和值
         data.writeBytes(term.bytes, term.offset, term.length);
         bufferedOutput = maybeGrowBuffer(bufferedOutput, term.length);
-        bufferedOutput.writeBytes(term.bytes, term.offset, term.length);
+        bufferedOutput.writeBytes(term.bytes, term.offset, term.length); // 第一个 term 已经写入 data，这里为什么还要写到 buffer。上面的英文注释写得很清楚
         dictLength = term.length;
       } else {
-        final int prefixLength = StringHelper.bytesDifference(previous.get(), term);
+        final int prefixLength = StringHelper.bytesDifference(previous.get(), term); // 当前 term 和前一个 term 的相同前缀大小
         final int suffixLength = term.length - prefixLength;
         assert suffixLength > 0; // terms are unique
         // Will write (suffixLength + 1 byte + 2 vint) bytes. Grow the buffer in need.
         bufferedOutput = maybeGrowBuffer(bufferedOutput, suffixLength + 11);
         bufferedOutput.writeByte(
-            (byte) (Math.min(prefixLength, 15) | (Math.min(15, suffixLength - 1) << 4)));
+            (byte) (Math.min(prefixLength, 15) | (Math.min(15, suffixLength - 1) << 4))); // 当 prefixLength(低四位) < 15 或 suffixLength（高四位） < 16 时，可直接从该字节读出。目的是节约空间，因为 suffixLength 肯定是大于0的，所以可以减1存储，也就可以表示表达 1 ~ 15
         if (prefixLength >= 15) {
           bufferedOutput.writeVInt(prefixLength - 15);
         }
@@ -606,14 +607,14 @@ final class Lucene90DocValuesConsumer extends DocValuesConsumer {
       ++ord;
     }
     // Compress and write out the last block
-    if (bufferedOutput.getPosition() > dictLength) {
+    if (bufferedOutput.getPosition() > dictLength) { // 最后一个 block 超过 1 term，则将除第一个 term 的其他 terms 压缩存储
       final int uncompressedLength =
           compressAndGetTermsDictBlockLength(bufferedOutput, dictLength, ht);
       maxBlockLength = Math.max(maxBlockLength, uncompressedLength);
     }
 
-    writer.finish();
-    meta.writeInt(maxLength);
+    writer.finish(); // 这里比较隐含，内部会将 DirectMonotonicWriter 的元数据（min、avgInc、length）写入 meta，编码后的数据写入 addressBuffer
+    meta.writeInt(maxLength); // 最大 term 长度
     // Write one more int for storing max block length.
     meta.writeInt(maxBlockLength);
     meta.writeLong(start);
@@ -666,8 +667,8 @@ final class Lucene90DocValuesConsumer extends DocValuesConsumer {
       long offset = 0;
       long ord = 0;
       for (BytesRef term = iterator.next(); term != null; term = iterator.next()) {
-        if ((ord & Lucene90DocValuesFormat.TERMS_DICT_REVERSE_INDEX_MASK) == 0) {
-          writer.add(offset);
+        if ((ord & Lucene90DocValuesFormat.TERMS_DICT_REVERSE_INDEX_MASK) == 0) { // 每组的第一个值
+          writer.add(offset); // 这里 ord 为 0 为什么还写 offset?
           final int sortKeyLength;
           if (ord == 0) {
             // no previous term: no bytes to write
@@ -676,14 +677,14 @@ final class Lucene90DocValuesConsumer extends DocValuesConsumer {
             sortKeyLength = StringHelper.sortKeyLength(previous.get(), term);
           }
           offset += sortKeyLength;
-          data.writeBytes(term.bytes, term.offset, sortKeyLength);
+          data.writeBytes(term.bytes, term.offset, sortKeyLength); // prefixValue: 存的是第 1024*n (n>0) 和 1024*n-1 的共同前缀 + 1byte，比如 abc 和 abde，存的便是 abd
         } else if ((ord & Lucene90DocValuesFormat.TERMS_DICT_REVERSE_INDEX_MASK)
-            == Lucene90DocValuesFormat.TERMS_DICT_REVERSE_INDEX_MASK) {
+            == Lucene90DocValuesFormat.TERMS_DICT_REVERSE_INDEX_MASK) { // 每组的最后一个 term
           previous.copyBytes(term);
         }
         ++ord;
       }
-      writer.add(offset);
+      writer.add(offset); // 这里为什么还要记一个 offset? 这里相当于结尾，查最后一个 term 需要。如果要查第 n 个 term，则要获取第 n 个 term 的 offset 和 n+1 个 term 的 offset，相减得到长度
       writer.finish();
       meta.writeLong(start);
       meta.writeLong(data.getFilePointer() - start);
