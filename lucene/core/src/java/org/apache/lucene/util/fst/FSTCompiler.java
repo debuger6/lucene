@@ -80,7 +80,7 @@ public class FSTCompiler<T> {
 
   // Reused temporarily while building the FST:
   int[] numBytesPerArc = new int[4];
-  int[] numLabelBytesPerArc = new int[numBytesPerArc.length];
+  int[] numLabelBytesPerArc = new int[numBytesPerArc.length]; // 记录当前正在序列化的节点的每条边的label的byte数
   final FixedLengthArcsBuffer fixedLengthArcsBuffer = new FixedLengthArcsBuffer();
 
   long arcCount;
@@ -311,10 +311,10 @@ public class FSTCompiler<T> {
     long bytesPosStart = bytes.getPosition();
     if (dedupHash != null
         && (doShareNonSingletonNodes || nodeIn.numArcs <= 1)
-        && tailLength <= shareMaxTailLength) {
-      if (nodeIn.numArcs == 0) {
-        node = fst.addNode(this, nodeIn);
-        lastFrozenNode = node;
+        && tailLength <= shareMaxTailLength) { // 这个 if 条件一定为 true
+      if (nodeIn.numArcs == 0) { // 出边数为0，在当前的实现中一定是终止节点
+        node = fst.addNode(this, nodeIn); // 序列化返回节点序列化后的buffer偏移地址（其实是节点的第一个边序列化后的flag地址），这里是终止节点，返回 -1
+        lastFrozenNode = node; // 更新最后一次冻结的节点
       } else {
         node = dedupHash.add(this, nodeIn);
       }
@@ -339,7 +339,7 @@ public class FSTCompiler<T> {
 
   private void freezeTail(int prefixLenPlus1) throws IOException {
     // System.out.println("  compileTail " + prefixLenPlus1);
-    final int downTo = Math.max(1, prefixLenPlus1);
+    final int downTo = Math.max(1, prefixLenPlus1); // 这里的目的是保证不会冻结 root 节点
     for (int idx = lastInput.length(); idx >= downTo; idx--) {
 
       boolean doPrune = false;
@@ -411,13 +411,13 @@ public class FSTCompiler<T> {
         // dead-end states:
         final boolean isFinal = node.isFinal || node.numArcs == 0;
 
-        if (doCompile) {
+        if (doCompile) { // 关注这里，减枝相关的逻辑用不到
           // this node makes it and we now compile it.  first,
           // compile any targets that were previously
           // undecided:
           parent.replaceLast(
               lastInput.intAt(idx - 1),
-              compileNode(node, 1 + lastInput.length() - idx),
+              compileNode(node, 1 + lastInput.length() - idx), // 序列化并返回序列化后的节点
               nextFinalOutput,
               isFinal);
         } else {
@@ -492,13 +492,13 @@ public class FSTCompiler<T> {
     }
 
     // compare shared prefix length
-    int pos1 = 0;
+    int pos1 = 0; // 记录公共前缀的长度
     int pos2 = input.offset;
     final int pos1Stop = Math.min(lastInput.length(), input.length);
-    while (true) {
+    while (true) { // 循环的目的就是统计共同前缀长度
       frontier[pos1].inputCount++;
       // System.out.println("  incr " + pos1 + " ct=" + frontier[pos1].inputCount + " n=" +
-      // frontier[pos1]);
+      // frontier[pos1]); 已经对比完最大公共长度个字符或当前输入和上一次输入的当前字符不相等，说明已经找到最大公共前缀
       if (pos1 >= pos1Stop || lastInput.intAt(pos1) != input.ints[pos2]) {
         break;
       }
@@ -517,34 +517,34 @@ public class FSTCompiler<T> {
 
     // minimize/compile states from previous input's
     // orphan'd suffix
-    freezeTail(prefixLenPlus1);
+    freezeTail(prefixLenPlus1); // 冻结前一个输入的除共享前缀的所有节点（注：起始节点是所有输入的共享节点，最后再冻结）
 
-    // init tail states for current input
+    // init tail states for current input 处理当前输入的后缀，将输入放在边上，并连接状态节点
     for (int idx = prefixLenPlus1; idx <= input.length; idx++) {
       frontier[idx - 1].addArc(input.ints[input.offset + idx - 1], frontier[idx]);
       frontier[idx].inputCount++;
     }
 
     final UnCompiledNode<T> lastNode = frontier[input.length];
-    if (lastInput.length() != input.length || prefixLenPlus1 != input.length + 1) {
-      lastNode.isFinal = true;
+    if (lastInput.length() != input.length || prefixLenPlus1 != input.length + 1) { // 在当前lucene实现中，该条件一定满足
+      lastNode.isFinal = true; // 每个term的最后一条边指向的节点都是 final
       lastNode.output = NO_OUTPUT;
     }
 
     // push conflicting outputs forward, only as far as
     // needed
-    for (int idx = 1; idx < prefixLenPlus1; idx++) {
+    for (int idx = 1; idx < prefixLenPlus1; idx++) { // 从共享前缀节点从前往后调整output
       final UnCompiledNode<T> node = frontier[idx];
       final UnCompiledNode<T> parentNode = frontier[idx - 1];
 
-      final T lastOutput = parentNode.getLastOutput(input.ints[input.offset + idx - 1]);
+      final T lastOutput = parentNode.getLastOutput(input.ints[input.offset + idx - 1]); //
       assert validOutput(lastOutput);
 
       final T commonOutputPrefix;
       final T wordSuffix;
 
       if (lastOutput != NO_OUTPUT) {
-        commonOutputPrefix = fst.outputs.common(output, lastOutput);
+        commonOutputPrefix = fst.outputs.common(output, lastOutput); // 找到当前output
         assert validOutput(commonOutputPrefix);
         wordSuffix = fst.outputs.subtract(lastOutput, commonOutputPrefix);
         assert validOutput(wordSuffix);
@@ -554,17 +554,17 @@ public class FSTCompiler<T> {
         commonOutputPrefix = wordSuffix = NO_OUTPUT;
       }
 
-      output = fst.outputs.subtract(output, commonOutputPrefix);
+      output = fst.outputs.subtract(output, commonOutputPrefix); // 更新output: 扣除公共前缀上的输出
       assert validOutput(output);
     }
 
     if (lastInput.length() == input.length && prefixLenPlus1 == 1 + input.length) {
       // same input more than 1 time in a row, mapping to
       // multiple outputs
-      lastNode.output = fst.outputs.merge(lastNode.output, output);
+      lastNode.output = fst.outputs.merge(lastNode.output, output); // 当前输入和上一次输入相同，则合并输出，一般不会出现这种情况
     } else {
       // this new arc is private to this new input; set its
-      // arc output to the leftover output:
+      // arc output to the leftover output: 经过扣除后的 output 放在除前缀后的第一个边上
       frontier[prefixLenPlus1 - 1].setLastOutput(
           input.ints[input.offset + prefixLenPlus1 - 1], output);
     }
@@ -602,7 +602,7 @@ public class FSTCompiler<T> {
     }
     // if (DEBUG) System.out.println("  builder.finish root.isFinal=" + root.isFinal + "
     // root.output=" + root.output);
-    fst.finish(compileNode(root, lastInput.length()).node);
+    fst.finish(compileNode(root, lastInput.length()).node); // 序列化root节点并记录fst起始位置
 
     return fst;
   }
@@ -627,9 +627,9 @@ public class FSTCompiler<T> {
   static class Arc<T> {
     int label; // really an "unsigned" byte
     Node target;
-    boolean isFinal;
+    boolean isFinal; // 是否指向终止节点，即边是某term的最后一条边
     T output;
-    T nextFinalOutput;
+    T nextFinalOutput; // 携带 nextFinalOutput，说明边是某个term的最后一条边且是其他term的前缀
   }
 
   // NOTE: not many instances of Node or CompiledNode are in
@@ -645,7 +645,7 @@ public class FSTCompiler<T> {
   }
 
   static final class CompiledNode implements Node {
-    long node;
+    long node; // 序列化后节点在字节数组中的偏移
 
     @Override
     public boolean isCompiled() {
@@ -657,17 +657,17 @@ public class FSTCompiler<T> {
   static final class UnCompiledNode<T> implements Node {
     final FSTCompiler<T> owner;
     int numArcs;
-    Arc<T>[] arcs;
+    Arc<T>[] arcs; // 出边
     // TODO: instead of recording isFinal/output on the
     // node, maybe we should use -1 arc to mean "end" (like
     // we do when reading the FST).  Would simplify much
     // code here...
-    T output;
+    T output; // 节点本身携带的 output，只有节点在共享前缀中，且为某个term的终止节点时，才为非0
     boolean isFinal;
     long inputCount;
 
     /** This node's depth, starting from the automaton root. */
-    final int depth;
+    final int depth; // 节点在 FST 中的深度，即到 root 节点的距离
 
     /**
      * @param depth The node's depth starting from the automaton root. Needed for LUCENE-2934 (node
@@ -760,7 +760,7 @@ public class FSTCompiler<T> {
         assert owner.validOutput(arcs[arcIdx].output);
       }
 
-      if (isFinal) {
+      if (isFinal) { // 节点在共享前缀中，且为某个term的终止节点，更新output
         output = owner.fst.outputs.add(outputPrefix, output);
         assert owner.validOutput(output);
       }

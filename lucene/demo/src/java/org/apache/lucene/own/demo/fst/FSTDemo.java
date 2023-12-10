@@ -28,8 +28,8 @@ import org.apache.lucene.util.fst.Util;
 
 public class FSTDemo {
   public static void main(String[] args) throws IOException {
-    String[] inputValues = {"bat", "cat", "deep", "do", "dog", "dogs"};
-    long[] outputvalues = {2, 5, 15, 10, 3, 2};
+    String[] inputValues = {"lu", "lucene", "luk", "pat", "push", "start", "tart"};
+    long[] outputValues = {101, 90, 80, 66, 83, 57, 56};
 
     PositiveIntOutputs outputs = PositiveIntOutputs.getSingleton();
     FSTCompiler.Builder<Long> builder = new FSTCompiler.Builder<>(FST.INPUT_TYPE.BYTE1, outputs);
@@ -37,14 +37,13 @@ public class FSTDemo {
     IntsRefBuilder intsRefBuilder = new IntsRefBuilder();
     for (int i = 0; i < inputValues.length; i ++) {
       BytesRef bytesRef = new BytesRef(inputValues[i]);
-      build.add(Util.toIntsRef(bytesRef, intsRefBuilder), outputvalues[i]);
+      build.add(Util.toIntsRef(bytesRef, intsRefBuilder), outputValues[i]);
     }
 
     FST<Long> fst = build.compile();
-    BytesRef bytesRef = new BytesRef(inputValues[3]);
+    BytesRef bytesRef = new BytesRef("lucene");
     Long aLong = Util.get(fst, Util.toIntsRef(bytesRef, intsRefBuilder));
-
-    System.out.println(aLong);
+    assert aLong == 90;
   }
 }
 

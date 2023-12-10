@@ -136,25 +136,25 @@ final class NodeHash<T> {
     long pos = h & mask;
     int c = 0;
     while (true) {
-      final long v = table.get(pos);
-      if (v == 0) {
+      final long v = table.get(pos); // hash table 中存的是节点序列化后的位置
+      if (v == 0) { // 代表节点未序列化
         // freeze & add
-        final long node = fst.addNode(fstCompiler, nodeIn);
+        final long node = fst.addNode(fstCompiler, nodeIn); // 序列化节点
         // System.out.println("  now freeze node=" + node);
         assert hash(node) == h : "frozenHash=" + hash(node) + " vs h=" + h;
         count++;
-        table.set(pos, node);
+        table.set(pos, node); // 将节点偏移加入 hash table
         // Rehash at 2/3 occupancy:
         if (count > 2 * table.size() / 3) {
           rehash();
         }
         return node;
-      } else if (nodesEqual(nodeIn, v)) {
+      } else if (nodesEqual(nodeIn, v)) { // 代表序列化过相同节点，则共享该节点
         // same node is already here
         return v;
       }
 
-      // quadratic probe
+      // quadratic probe 线性探测
       pos = (pos + (++c)) & mask;
     }
   }

@@ -216,13 +216,15 @@ public final class Lucene90BlockTreeTermsWriter extends FieldsConsumer {
    * Suggested default value for the {@code minItemsInBlock} parameter to {@link
    * #Lucene90BlockTreeTermsWriter(SegmentWriteState,PostingsWriterBase,int,int)}.
    */
-  public static final int DEFAULT_MIN_BLOCK_SIZE = 25;
+  //public static final int DEFAULT_MIN_BLOCK_SIZE = 25;
+  public static final int DEFAULT_MIN_BLOCK_SIZE = 3;
 
   /**
    * Suggested default value for the {@code maxItemsInBlock} parameter to {@link
    * #Lucene90BlockTreeTermsWriter(SegmentWriteState,PostingsWriterBase,int,int)}.
    */
-  public static final int DEFAULT_MAX_BLOCK_SIZE = 48;
+  //public static final int DEFAULT_MAX_BLOCK_SIZE = 48;
+  public static final int DEFAULT_MAX_BLOCK_SIZE = 4;
 
   // public static boolean DEBUG = false;
   // public static boolean DEBUG2 = false;
@@ -640,7 +642,7 @@ public final class Lucene90BlockTreeTermsWriter extends FieldsConsumer {
 
         PendingEntry ent = pending.get(i);
 
-        int suffixLeadLabel;
+        int suffixLeadLabel; // 后缀的前导字符对应的ASCII
 
         if (ent.isTerm) {
           PendingTerm term = (PendingTerm) ent;
@@ -662,8 +664,8 @@ public final class Lucene90BlockTreeTermsWriter extends FieldsConsumer {
         // if (DEBUG) System.out.println("  i=" + i + " ent=" + ent + " suffixLeadLabel=" +
         // suffixLeadLabel);
 
-        if (suffixLeadLabel != lastSuffixLeadLabel) {
-          int itemsInBlock = i - nextBlockStart;
+        if (suffixLeadLabel != lastSuffixLeadLabel) { // suffixLeadLabel相同的term放在一个block中
+          int itemsInBlock = i - nextBlockStart; // 当前有多少个term将写入block（不包含当前第i个term）
           if (itemsInBlock >= minItemsInBlock && end - nextBlockStart > maxItemsInBlock) {
             // The count is too large for one block, so we must break it into "floor" blocks, where
             // we record
@@ -688,7 +690,7 @@ public final class Lucene90BlockTreeTermsWriter extends FieldsConsumer {
             hasTerms = false;
             hasSubBlocks = false;
             nextFloorLeadLabel = suffixLeadLabel;
-            nextBlockStart = i;
+            nextBlockStart = i; // 下一次从第i个term开始组装block
           }
 
           lastSuffixLeadLabel = suffixLeadLabel;
@@ -1063,7 +1065,7 @@ public final class Lucene90BlockTreeTermsWriter extends FieldsConsumer {
 
       // if (DEBUG) System.out.println("  shared=" + pos + "  lastTerm.length=" + lastTerm.length);
 
-      // Close the "abandoned" suffix now:
+      // Close the "abandoned" suffix now:  检查前缀长度为 lastTerm 到 prefixLength+1 的term个数是否达到阈值，达到阈值则触发生成Block。注意这里是从大到小遍历，优先处理更长前缀的terms
       for (int i = lastTerm.length() - 1; i >= prefixLength; i--) {
 
         // How many items on top of the stack share the current suffix

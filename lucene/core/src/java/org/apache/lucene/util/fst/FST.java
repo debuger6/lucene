@@ -16,8 +16,6 @@
  */
 package org.apache.lucene.util.fst;
 
-import static org.apache.lucene.util.fst.FST.Arc.BitTable;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -25,6 +23,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.store.ByteBuffersDataOutput;
@@ -36,6 +35,8 @@ import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.Constants;
 import org.apache.lucene.util.RamUsageEstimator;
+
+import static org.apache.lucene.util.fst.FST.Arc.BitTable;
 
 // TODO: break this into WritableFST and ReadOnlyFST.. then
 // we can have subclasses of ReadOnlyFST to handle the
@@ -168,7 +169,7 @@ public final class FST<T> implements Accountable {
 
     private byte flags;
 
-    private T nextFinalOutput;
+    private T nextFinalOutput; // 如果当前边是某个term的最后一条边，且为其他term的前缀，那么该值为非0
 
     private long nextArc;
 
@@ -182,7 +183,7 @@ public final class FST<T> implements Accountable {
 
     private long posArcsStart;
 
-    private int arcIdx;
+    private int arcIdx; // 边在节点中的索引
 
     private int numArcs;
 
@@ -192,7 +193,7 @@ public final class FST<T> implements Accountable {
      * Start position in the {@link FST.BytesReader} of the presence bits for a direct addressing
      * node, aka the bit-table
      */
-    private long bitTableStart;
+    private long bitTableStart; // 位图起始地址，直接寻址存储方式才有
 
     /** First label of a direct addressing node. */
     private int firstLabel;
@@ -389,7 +390,7 @@ public final class FST<T> implements Accountable {
       /** See {@link BitTableUtil#nextBitSet(int, int, FST.BytesReader)}. */
       static int nextBitSet(int bitIndex, Arc<?> arc, FST.BytesReader in) throws IOException {
         assert arc.nodeFlags() == ARCS_FOR_DIRECT_ADDRESSING;
-        in.setPosition(arc.bitTableStart);
+        in.setPosition(arc.bitTableStart); // 定位到位图位置
         return BitTableUtil.nextBitSet(bitIndex, getNumPresenceBytes(arc.numArcs()), in);
       }
 
@@ -516,7 +517,7 @@ public final class FST<T> implements Accountable {
     if (newStartNode == FINAL_END_NODE && emptyOutput != null) {
       newStartNode = 0;
     }
-    startNode = newStartNode;
+    startNode = newStartNode; // 记录 fst 的起始位置
     bytes.finish();
   }
 
@@ -645,12 +646,12 @@ public final class FST<T> implements Accountable {
     // System.out.println("FST.addNode pos=" + bytes.getPosition() + " numArcs=" + nodeIn.numArcs);
     if (nodeIn.numArcs == 0) {
       if (nodeIn.isFinal) {
-        return FINAL_END_NODE;
+        return FINAL_END_NODE; // 既是终止节点且无边则无需序列化，返回 -1
       } else {
-        return NON_FINAL_END_NODE;
+        return NON_FINAL_END_NODE; // 目前不会出现这种情况
       }
     }
-    final long startAddress = fstCompiler.bytes.getPosition();
+    final long startAddress = fstCompiler.bytes.getPosition(); // 获取 bytes 的下一个写入地址
     // System.out.println("  startAddr=" + startAddress);
 
     final boolean doFixedLengthArcs = shouldExpandNodeWithFixedLengthArcs(fstCompiler, nodeIn);
@@ -677,20 +678,20 @@ public final class FST<T> implements Accountable {
       // target.node);
 
       if (arcIdx == lastArc) {
-        flags += BIT_LAST_ARC;
+        flags += BIT_LAST_ARC; // 表示当前边是节点的最后一条边
       }
 
       if (fstCompiler.lastFrozenNode == target.node && !doFixedLengthArcs) {
         // TODO: for better perf (but more RAM used) we
         // could avoid this except when arc is "near" the
         // last arc:
-        flags += BIT_TARGET_NEXT;
+        flags += BIT_TARGET_NEXT; // 表示上一次序列化的节点是当前边的target节点，这样可以避免记录target，节约内存
       }
 
       if (arc.isFinal) {
-        flags += BIT_FINAL_ARC;
+        flags += BIT_FINAL_ARC; // arc 是某个 term 的最后一条边
         if (arc.nextFinalOutput != NO_OUTPUT) {
-          flags += BIT_ARC_HAS_FINAL_OUTPUT;
+          flags += BIT_ARC_HAS_FINAL_OUTPUT; // 表示最后节点上携带了output，同时这个output赋给了边的 nextFinalOutput
         }
       } else {
         assert arc.nextFinalOutput == NO_OUTPUT;
@@ -699,11 +700,11 @@ public final class FST<T> implements Accountable {
       boolean targetHasArcs = target.node > 0;
 
       if (!targetHasArcs) {
-        flags += BIT_STOP_NODE;
+        flags += BIT_STOP_NODE; // target 节点是终止节点
       }
 
       if (arc.output != NO_OUTPUT) {
-        flags += BIT_ARC_HAS_OUTPUT;
+        flags += BIT_ARC_HAS_OUTPUT; // 边携带有 output
       }
 
       fstCompiler.bytes.writeByte((byte) flags);
@@ -771,7 +772,7 @@ public final class FST<T> implements Accountable {
 
       int labelRange = nodeIn.arcs[nodeIn.numArcs - 1].label - nodeIn.arcs[0].label + 1;
       assert labelRange > 0;
-      if (shouldExpandNodeWithDirectAddressing(
+      if (shouldExpandNodeWithDirectAddressing( // 这里面会比较直接寻址和二分两种存储方式的内存空间，根据一定的算法规则选取用哪种方法
           fstCompiler, nodeIn, maxBytesPerArc, maxBytesPerArcWithoutLabel, labelRange)) {
         writeNodeForDirectAddressing(
             fstCompiler, nodeIn, startAddress, maxBytesPerArcWithoutLabel, labelRange);
@@ -783,7 +784,7 @@ public final class FST<T> implements Accountable {
     }
 
     final long thisNodeAddress = fstCompiler.bytes.getPosition() - 1;
-    fstCompiler.bytes.reverse(startAddress, thisNodeAddress);
+    fstCompiler.bytes.reverse(startAddress, thisNodeAddress); // 反转当前节点序列化的数据
     fstCompiler.nodeCount++;
     return thisNodeAddress;
   }
@@ -912,15 +913,15 @@ public final class FST<T> implements Accountable {
     // Drop the label bytes since we can infer the label based on the arc index,
     // the presence bits, and the first label. Keep the first label.
     int headerMaxLen = 11;
-    int numPresenceBytes = getNumPresenceBytes(labelRange);
+    int numPresenceBytes = getNumPresenceBytes(labelRange); // 获取位图需要的字节数
     long srcPos = fstCompiler.bytes.getPosition();
     int totalArcBytes =
-        fstCompiler.numLabelBytesPerArc[0] + nodeIn.numArcs * maxBytesPerArcWithoutLabel;
+        fstCompiler.numLabelBytesPerArc[0] + nodeIn.numArcs * maxBytesPerArcWithoutLabel; // 所有边序列化需要的总字节数，每条边占用的字节数都是一样的，另外第一条边的label单独存储
     int bufferOffset = headerMaxLen + numPresenceBytes + totalArcBytes;
     byte[] buffer = fstCompiler.fixedLengthArcsBuffer.ensureCapacity(bufferOffset).getBytes();
     // Copy the arcs to the buffer, dropping all labels except first one.
-    for (int arcIdx = nodeIn.numArcs - 1; arcIdx >= 0; arcIdx--) {
-      bufferOffset -= maxBytesPerArcWithoutLabel;
+    for (int arcIdx = nodeIn.numArcs - 1; arcIdx >= 0; arcIdx--) { // 从大往小遍历，写的时候是从后往前写，因此在该方法中序列化的地址顺序还是升序的，但是注意：最终数据都会被反转
+      bufferOffset -= maxBytesPerArcWithoutLabel; // 注意，bufferOffset 是往前挪的
       int srcArcLen = fstCompiler.numBytesPerArc[arcIdx];
       srcPos -= srcArcLen;
       int labelLen = fstCompiler.numLabelBytesPerArc[arcIdx];
@@ -989,20 +990,20 @@ public final class FST<T> implements Accountable {
     for (int arcIdx = 1; arcIdx < nodeIn.numArcs; arcIdx++) {
       int label = nodeIn.arcs[arcIdx].label;
       assert label > previousLabel;
-      presenceIndex += label - previousLabel;
-      while (presenceIndex >= Byte.SIZE) {
+      presenceIndex += label - previousLabel; // 当前label在位图占位偏移
+      while (presenceIndex >= Byte.SIZE) { // 超过一个字节，找到当前label所属的byte，并将前面尚未写入的bytes序列化
         fstCompiler.bytes.writeByte(bytePos++, presenceBits);
         presenceBits = 0;
         presenceIndex -= Byte.SIZE;
       }
       // Set the bit at presenceIndex to flag that the corresponding arc is present.
-      presenceBits |= 1 << presenceIndex;
+      presenceBits |= 1 << presenceIndex; // 当前label占位置1
       previousLabel = label;
     }
     assert presenceIndex == (nodeIn.arcs[nodeIn.numArcs - 1].label - nodeIn.arcs[0].label) % 8;
     assert presenceBits != 0; // The last byte is not 0.
     assert (presenceBits & (1 << presenceIndex)) != 0; // The last arc is always present.
-    fstCompiler.bytes.writeByte(bytePos++, presenceBits);
+    fstCompiler.bytes.writeByte(bytePos++, presenceBits); // 写入最后一个byte
     assert bytePos - dest == numPresenceBytes;
   }
 
@@ -1275,7 +1276,7 @@ public final class FST<T> implements Accountable {
     assert BitTable.assertIsValid(arc, in);
     assert rangeIndex >= 0 && rangeIndex < arc.numArcs();
     assert BitTable.isBitSet(rangeIndex, arc, in);
-    int presenceIndex = BitTable.countBitsUpTo(rangeIndex, arc, in);
+    int presenceIndex = BitTable.countBitsUpTo(rangeIndex, arc, in); //
     return readArcByDirectAddressing(arc, in, rangeIndex, presenceIndex);
   }
 
@@ -1415,7 +1416,7 @@ public final class FST<T> implements Accountable {
   public Arc<T> findTargetArc(int labelToMatch, Arc<T> follow, Arc<T> arc, BytesReader in)
       throws IOException {
 
-    if (labelToMatch == END_LABEL) {
+    if (labelToMatch == END_LABEL) { // -1 代表 stop 节点
       if (follow.isFinal()) {
         if (follow.target() <= 0) {
           arc.flags = BIT_LAST_ARC;
@@ -1437,7 +1438,7 @@ public final class FST<T> implements Accountable {
       return null;
     }
 
-    in.setPosition(follow.target());
+    in.setPosition(follow.target()); // 定位到 target 节点的位置
 
     // System.out.println("fta label=" + (char) labelToMatch);
 
@@ -1452,7 +1453,7 @@ public final class FST<T> implements Accountable {
       int arcIndex = labelToMatch - arc.firstLabel();
       if (arcIndex < 0 || arcIndex >= arc.numArcs()) {
         return null; // Before or after label range.
-      } else if (!BitTable.isBitSet(arcIndex, arc, in)) {
+      } else if (!BitTable.isBitSet(arcIndex, arc, in)) { // labelToMatch 在 bits 中不存在
         return null; // Arc missing in the range.
       }
       return readArcByDirectAddressing(arc, in, arcIndex);

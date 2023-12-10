@@ -19,7 +19,6 @@ package org.apache.lucene.own.demo.index;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +32,7 @@ import org.apache.lucene.own.demo.utils.Utils;
 public class InvertedIndexDemo {
   public static void main(String[] args) throws IOException {
     List<Document> documents = genDocs();
-    Engine engine = Utils.engine("./data/numeric_doc_value_demo");
+    Engine engine = Utils.engine("./data/inverted_index_demo");
     engine.batchIndex(documents);
     engine.commit();
   }

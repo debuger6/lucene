@@ -421,7 +421,7 @@ final class DocumentsWriter implements Closeable, Accountable {
       final Iterable<? extends Iterable<? extends IndexableField>> docs,
       final DocumentsWriterDeleteQueue.Node<?> delNode)
       throws IOException {
-    // 这个方法里面会去检查要不要触发 flush
+    // 这个方法里面会去检查要不要触发 flush，所以写入也会导致 flush
     boolean hasEvents = preUpdate();
 
     // 写入时，要获取一个 DWPT，同一个 DWPT 同时只能被一个线程获取
