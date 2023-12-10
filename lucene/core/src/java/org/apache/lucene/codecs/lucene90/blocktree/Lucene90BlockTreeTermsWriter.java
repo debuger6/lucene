@@ -216,8 +216,8 @@ public final class Lucene90BlockTreeTermsWriter extends FieldsConsumer {
    * Suggested default value for the {@code minItemsInBlock} parameter to {@link
    * #Lucene90BlockTreeTermsWriter(SegmentWriteState,PostingsWriterBase,int,int)}.
    */
-  //public static final int DEFAULT_MIN_BLOCK_SIZE = 25;
-  public static final int DEFAULT_MIN_BLOCK_SIZE = 3;
+  public static final int DEFAULT_MIN_BLOCK_SIZE = 25;
+  //public static final int DEFAULT_MIN_BLOCK_SIZE = 3;
 
   /**
    * Suggested default value for the {@code maxItemsInBlock} parameter to {@link
