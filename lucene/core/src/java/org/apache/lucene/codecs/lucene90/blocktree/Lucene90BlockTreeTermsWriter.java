@@ -223,8 +223,8 @@ public final class Lucene90BlockTreeTermsWriter extends FieldsConsumer {
    * Suggested default value for the {@code maxItemsInBlock} parameter to {@link
    * #Lucene90BlockTreeTermsWriter(SegmentWriteState,PostingsWriterBase,int,int)}.
    */
-  //public static final int DEFAULT_MAX_BLOCK_SIZE = 48;
-  public static final int DEFAULT_MAX_BLOCK_SIZE = 4;
+  public static final int DEFAULT_MAX_BLOCK_SIZE = 48;
+  //public static final int DEFAULT_MAX_BLOCK_SIZE = 4;
 
   // public static boolean DEBUG = false;
   // public static boolean DEBUG2 = false;

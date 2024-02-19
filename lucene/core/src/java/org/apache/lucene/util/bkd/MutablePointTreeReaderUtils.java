@@ -154,10 +154,10 @@ public final class MutablePointTreeReaderUtils {
       int mid,
       BytesRef scratch1,
       BytesRef scratch2) {
-    final int dimOffset = splitDim * config.bytesPerDim + commonPrefixLen;
-    final int dimCmpBytes = config.bytesPerDim - commonPrefixLen;
+    final int dimOffset = splitDim * config.bytesPerDim + commonPrefixLen; // 切分维度的第一个值的后缀的偏移
+    final int dimCmpBytes = config.bytesPerDim - commonPrefixLen; // 后缀的长度
     final int dataCmpBytes =
-        (config.numDims - config.numIndexDims) * config.bytesPerDim + dimCmpBytes;
+        (config.numDims - config.numIndexDims) * config.bytesPerDim + dimCmpBytes; //
     final int bitsPerDocId = PackedInts.bitsRequired(maxDoc - 1);
     new RadixSelector(dataCmpBytes + (bitsPerDocId + 7) / 8) {
 

@@ -43,7 +43,7 @@ public class Lucene90PointsWriter extends PointsWriter {
   protected final IndexOutput metaOut, indexOut, dataOut;
 
   final SegmentWriteState writeState;
-  final int maxPointsInLeafNode;
+  final int maxPointsInLeafNode; // 叶子节点包含的最大点数据数量
   final double maxMBSortInHeap;
   private boolean finished;
 

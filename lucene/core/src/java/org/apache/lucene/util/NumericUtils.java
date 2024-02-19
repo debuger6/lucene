@@ -141,7 +141,7 @@ public final class NumericUtils {
   public static void intToSortableBytes(int value, byte[] result, int offset) {
     // Flip the sign bit, so negative ints sort before positive ints correctly:
     value ^= 0x80000000;
-    BitUtil.VH_BE_INT.set(result, offset, value);
+    BitUtil.VH_BE_INT.set(result, offset, value); // 以大端序写入 buffer
   }
 
   /**

@@ -41,8 +41,8 @@ public class FieldType implements IndexableFieldType {
   private IndexOptions indexOptions = IndexOptions.NONE;
   private boolean frozen;
   private DocValuesType docValuesType = DocValuesType.NONE;
-  private int dimensionCount;
-  private int indexDimensionCount;
+  private int dimensionCount; // point 维度
+  private int indexDimensionCount; // 参与索引的维度（待确认）
   private int dimensionNumBytes;
   private int vectorDimension;
   private VectorEncoding vectorEncoding = VectorEncoding.FLOAT32;

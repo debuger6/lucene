@@ -29,12 +29,12 @@ import org.apache.lucene.util.PagedBytes;
 /** Buffers up pending byte[][] value(s) per doc, then flushes when segment flushes. */
 class PointValuesWriter {
   private final FieldInfo fieldInfo;
-  private final PagedBytes bytes;
-  private final DataOutput bytesOut;
+  private final PagedBytes bytes; // point 数据存储的 byte buffer
+  private final DataOutput bytesOut; // point 数据输出类，实际来源于上述 bytes
   private final Counter iwBytesUsed;
-  private int[] docIDs;
-  private int numPoints;
-  private int numDocs;
+  private int[] docIDs; // numPoints 到 docID 的映射，下标为 numPoints，值为 docID
+  private int numPoints; // 从 0 开始递增，作为每个点数据的唯一编号
+  private int numDocs; // 记录包含当前字段的 doc 数
   private int lastDocID = -1;
   private final int packedBytesLength;
 
@@ -69,11 +69,11 @@ class PointValuesWriter {
       iwBytesUsed.addAndGet((docIDs.length - numPoints) * (long) Integer.BYTES);
     }
     final long bytesRamBytesUsedBefore = bytes.ramBytesUsed();
-    bytesOut.writeBytes(value.bytes, value.offset, value.length);
+    bytesOut.writeBytes(value.bytes, value.offset, value.length); // 将 point 的字节数组写入 buffer
     iwBytesUsed.addAndGet(bytes.ramBytesUsed() - bytesRamBytesUsedBefore);
-    docIDs[numPoints] = docID;
+    docIDs[numPoints] = docID; // numPoints 代表当前点数据的编号，存储编号到 docID 的映射
     if (docID != lastDocID) {
-      numDocs++;
+      numDocs++; // 同一个 doc 包含相同字段的多个点数据，只会加一次
       lastDocID = docID;
     }
 
@@ -166,7 +166,7 @@ class PointValuesWriter {
     } else {
       values = new MutableSortingPointValues(points, sortMap);
     }
-    PointsReader reader =
+    PointsReader reader = // 目前来看这个 reader 有点多余，只是简单对 values 包了一层，最终还是返回 values，其他接口目前尚未支持
         new PointsReader() {
           @Override
           public PointValues getValues(String fieldName) {
@@ -279,7 +279,7 @@ class PointValuesWriter {
     }
 
     @Override
-    public void swap(int i, int j) {
+    public void swap(int i, int j) { // 对 points 排序会调用到
       in.swap(i, j);
     }
 

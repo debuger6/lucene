@@ -19,6 +19,7 @@ package org.apache.lucene.own.demo;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.lucene.analysis.Analyzer;
@@ -28,6 +29,10 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.search.Collector;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.MMapDirectory;
 
@@ -80,4 +85,18 @@ public class Engine {
        DirectoryReader reader = DirectoryReader.open(this.writer);
        return reader.getContext().leaves();
    }
+
+    public List<ScoreDoc> search(Query query, int topN) throws IOException {
+        DirectoryReader reader = DirectoryReader.open(this.writer);
+        IndexSearcher searcher = new IndexSearcher(reader);
+        ScoreDoc[] topNDocs = searcher.search(query, topN).scoreDocs;
+        reader.close();
+        return Arrays.asList(topNDocs);
+    }
+
+    public void searchWithCollector(Query query, Collector collector) throws IOException {
+        DirectoryReader reader = DirectoryReader.open(this.writer);
+        IndexSearcher searcher = new IndexSearcher(reader);
+        searcher.search(query, collector);
+    }
 }
