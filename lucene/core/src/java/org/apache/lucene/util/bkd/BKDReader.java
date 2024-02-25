@@ -705,7 +705,7 @@ public class BKDReader extends PointValues {
         }
 
         final int leftNumBytes;
-        if (nodeID * 2 < leafNodeOffset) {
+        if (nodeID * 2 < leafNodeOffset) { // 左孩子是内部节点，将 leftNumBytes 读出
           leftNumBytes = innerNodes.readVInt();
         } else {
           leftNumBytes = 0;

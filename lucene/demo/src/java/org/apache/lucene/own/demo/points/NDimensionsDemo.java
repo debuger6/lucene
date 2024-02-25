@@ -25,6 +25,8 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.own.demo.Engine;
 import org.apache.lucene.own.demo.utils.Utils;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
 
 public class NDimensionsDemo {
   public static void main(String[] args) throws IOException {
@@ -52,5 +54,11 @@ public class NDimensionsDemo {
     Engine engine = Utils.engine("./data/n_dimensions_domo");
     engine.batchIndex(docs);
     engine.commit();
+
+    Query rangeQuery = IntPoint.newRangeQuery("content", new int[]{7, 11}, new int[]{7, 11});
+    List<ScoreDoc> scoreDocs = engine.search(rangeQuery, 100);
+    scoreDocs.forEach(scoreDoc -> {
+      System.out.println("docid: " + scoreDoc.doc);
+    });
   }
 }
