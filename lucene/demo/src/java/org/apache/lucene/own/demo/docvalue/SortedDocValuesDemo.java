@@ -29,6 +29,7 @@ import org.apache.lucene.own.demo.Engine;
 import org.apache.lucene.own.demo.utils.Utils;
 import org.apache.lucene.util.BytesRef;
 
+import static org.apache.lucene.own.demo.utils.Utils.randomString;
 import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 public class SortedDocValuesDemo {
@@ -86,16 +87,5 @@ public class SortedDocValuesDemo {
     }
 
     return docs;
-  }
-
-  static String randomString(int length) {
-    String allCharacters = "abcde";
-    StringBuffer randomString = new StringBuffer();
-
-    for (int i = 0; i < length; i++) {
-      int randomIndex = (int)(Math.random() * allCharacters.length());
-      randomString.append(allCharacters.charAt(randomIndex));
-    }
-    return randomString.toString();
   }
 }

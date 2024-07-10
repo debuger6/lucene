@@ -17,5 +17,36 @@
 
 package org.apache.lucene.own.demo.store;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.own.demo.Engine;
+import org.apache.lucene.own.demo.utils.Utils;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.ScoreDoc;
+
+import static org.apache.lucene.own.demo.utils.Utils.randomString;
+
 public class OnlyStoreField {
+  public static void main(String[] args) throws IOException {
+    Engine engine = Utils.engine("./data/store_field_demo");
+    engine.batchIndex(genDocs(10000));
+    engine.commit();
+
+    List<ScoreDoc> scoreDocs = engine.search(new MatchAllDocsQuery(), 10);
+    for (ScoreDoc scoreDoc : scoreDocs) {
+      System.out.println("docId: " + scoreDoc.doc + " field0: " + engine.fieldValue("field0", scoreDoc.doc));
+    }
+
+  }
+
+  public static List<Document> genDocs(int n) {
+    List<Document> docs = new ArrayList<>();
+    for (int i = 0; i < n; i++) {
+      docs.add(new StoredStringRow(randomString(5), randomString(5), randomString(5)).document());
+    }
+    return docs;
+  }
 }

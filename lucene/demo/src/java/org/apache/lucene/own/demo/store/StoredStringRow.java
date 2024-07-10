@@ -15,25 +15,30 @@
  * limitations under the License.
  */
 
-package org.apache.lucene.own.demo.utils;
+package org.apache.lucene.own.demo.store;
 
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.apache.lucene.own.demo.Engine;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StoredField;
 
-public class Utils {
-  public static Engine engine(String dataPath) throws IOException {
-      return new Engine(dataPath);
+public class StoredStringRow {
+  List<Field> fields = new ArrayList<>(3);
+  public StoredStringRow(String value0, String value1, String value2) {
+    fields.add(new StoredField("field0", value0));
+    fields.add(new StoredField("field1", value1));
+    fields.add(new StoredField("field2", value2));
   }
 
-  public static String randomString(int length) {
-    String allCharacters = "abcde";
-    StringBuffer randomString = new StringBuffer();
-
-    for (int i = 0; i < length; i++) {
-      int randomIndex = (int)(Math.random() * allCharacters.length());
-      randomString.append(allCharacters.charAt(randomIndex));
+  Document document() {
+    Document doc = new Document();
+    for (Field field : this.fields) {
+      if (field.stringValue() != "") {
+        doc.add(field);
+      }
     }
-    return randomString.toString();
+    return doc;
   }
 }

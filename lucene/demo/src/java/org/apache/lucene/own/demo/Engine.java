@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -29,6 +30,7 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -97,6 +99,13 @@ public class Engine {
         ScoreDoc[] topNDocs = searcher.search(query, topN).scoreDocs;
         reader.close();
         return Arrays.asList(topNDocs);
+    }
+
+    public String fieldValue(String field, int docId) throws IOException {
+        DirectoryReader reader = DirectoryReader.open(this.directory);
+        IndexSearcher searcher = new IndexSearcher(reader);
+        StoredFields storedFields = searcher.storedFields();
+        return Objects.requireNonNull(storedFields.document(docId).getField(field)).stringValue();
     }
 
     public void searchWithCollector(Query query, Collector collector) throws IOException {
