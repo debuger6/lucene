@@ -43,8 +43,8 @@ final class BooleanScorer extends BulkScorer {
 
   private class BulkScorerAndDoc {
     final BulkScorer scorer;
-    final long cost;
-    int next;
+    final long cost; // 包含这个域值的文档个数(去重)
+    int next;  // 初始值为-1，用来表示包含这个域值的正在处理处理的文档号(从最小的文档号开始)
 
     BulkScorerAndDoc(BulkScorer scorer) {
       this.scorer = scorer;
@@ -88,7 +88,7 @@ final class BooleanScorer extends BulkScorer {
 
     @Override
     protected boolean lessThan(BulkScorerAndDoc a, BulkScorerAndDoc b) {
-      return a.next < b.next;
+      return a.next < b.next; // 文档号小的优先级高
     }
   }
 
@@ -100,7 +100,7 @@ final class BooleanScorer extends BulkScorer {
 
     @Override
     protected boolean lessThan(BulkScorerAndDoc a, BulkScorerAndDoc b) {
-      return a.cost < b.cost;
+      return a.cost < b.cost; // 文档数少的优先级高
     }
 
     public BulkScorerAndDoc get(int i) {
@@ -306,7 +306,7 @@ final class BooleanScorer extends BulkScorer {
   private BulkScorerAndDoc scoreWindow(
       BulkScorerAndDoc top, LeafCollector collector, Bits acceptDocs, int min, int max)
       throws IOException {
-    final int windowBase = top.next & ~MASK; // find the window that the next match belongs to
+    final int windowBase = top.next & ~MASK; // find the window that the next match belongs to 每个window有2048个doc，这里算出每个window对应的最小doc
     final int windowMin = Math.max(min, windowBase);
     final int windowMax = Math.min(max, windowBase + SIZE);
 

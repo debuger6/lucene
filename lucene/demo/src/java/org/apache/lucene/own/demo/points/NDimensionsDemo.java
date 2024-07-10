@@ -53,7 +53,8 @@ public class NDimensionsDemo {
 
     Engine engine = Utils.engine("./data/n_dimensions_domo");
     engine.batchIndex(docs);
-    engine.commit();
+    //engine.commit();
+    engine.flush();
 
     Query rangeQuery = IntPoint.newRangeQuery("content", new int[]{7, 11}, new int[]{7, 11});
     List<ScoreDoc> scoreDocs = engine.search(rangeQuery, 100);

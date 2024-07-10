@@ -42,7 +42,8 @@ public class PointRangeQueryDemo {
     }
     Engine engine = Utils.engine("./data/point_range_query_demo");
     engine.batchIndex(docs);
-    engine.commit();
+    //engine.commit();
+    engine.flush();
 
     Query rangeQuery = IntPoint.newRangeQuery("num_field", 3, 50);
     List<ScoreDoc> scoreDocs = engine.search(rangeQuery, 100);

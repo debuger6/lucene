@@ -44,6 +44,9 @@ public class Engine {
     private Analyzer analyzer;
     private Directory directory;
 
+    //private DirectoryReader reader;
+    //private IndexSearcher searcher;
+
     public Engine(String dataPath) throws IOException {
         // 使用标准分词器
         this.analyzer = new StandardAnalyzer();
@@ -55,6 +58,8 @@ public class Engine {
         //config.setCodec(new SimpleTextCodec());
         config.setOpenMode(CREATE);
         this.writer = new IndexWriter(directory, config);
+        //this.reader = DirectoryReader.open(this.writer);
+        //this.searcher = new IndexSearcher(reader);
     }
 
     // 写入，单条文档
@@ -82,12 +87,12 @@ public class Engine {
    }
 
    public List<LeafReaderContext> leaves() throws IOException {
-       DirectoryReader reader = DirectoryReader.open(this.writer);
+       DirectoryReader reader = DirectoryReader.open(this.directory);
        return reader.getContext().leaves();
    }
 
     public List<ScoreDoc> search(Query query, int topN) throws IOException {
-        DirectoryReader reader = DirectoryReader.open(this.writer);
+        DirectoryReader reader = DirectoryReader.open(this.directory);
         IndexSearcher searcher = new IndexSearcher(reader);
         ScoreDoc[] topNDocs = searcher.search(query, topN).scoreDocs;
         reader.close();
