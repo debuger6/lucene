@@ -411,17 +411,17 @@ public final class ByteBuffersDataOutput extends DataOutput implements Accountab
   }
 
   @Override
-  public void writeString(String v) {
+  public void writeString(String v) { // 包含一些细节：1. java String 使用 utf-16 表示，需转成 utf-8 节约存储 2. 内存分配
     try {
       final int MAX_CHARS_PER_WINDOW = 1024;
       if (v.length() <= MAX_CHARS_PER_WINDOW) {
-        final BytesRef utf8 = new BytesRef(v);
-        writeVInt(utf8.length);
-        writeBytes(utf8.bytes, utf8.offset, utf8.length);
+        final BytesRef utf8 = new BytesRef(v); // 内部 UTF-16 转 UTF-8 时顺便就计算了编码后的长度
+        writeVInt(utf8.length); // 写入 utf-8 表示时的大小
+        writeBytes(utf8.bytes, utf8.offset, utf8.length); // 写入 utf-8 表示的字节序列
       } else {
-        writeVInt(UnicodeUtil.calcUTF16toUTF8Length(v, 0, v.length()));
-        final byte[] buf = new byte[UnicodeUtil.MAX_UTF8_BYTES_PER_CHAR * MAX_CHARS_PER_WINDOW];
-        UTF16toUTF8(
+        writeVInt(UnicodeUtil.calcUTF16toUTF8Length(v, 0, v.length())); // 单独计算编码后的长度
+        final byte[] buf = new byte[UnicodeUtil.MAX_UTF8_BYTES_PER_CHAR * MAX_CHARS_PER_WINDOW]; // 这里避免分配大量临时内存，按窗口切分编码
+        UTF16toUTF8( // 内部按窗口编码字符串
             v,
             0,
             v.length(),

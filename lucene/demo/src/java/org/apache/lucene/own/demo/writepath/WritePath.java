@@ -26,7 +26,6 @@ import org.apache.lucene.document.FloatField;
 import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.LongField;
 import org.apache.lucene.document.StringField;
-import org.apache.lucene.document.TextField;
 import org.apache.lucene.own.demo.Engine;
 import org.apache.lucene.own.demo.Row;
 

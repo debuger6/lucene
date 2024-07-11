@@ -72,7 +72,7 @@ public final class Lucene90CompressingStoredFieldsWriter extends StoredFieldsWri
   static final int NUMERIC_LONG = 0x04;
   static final int NUMERIC_DOUBLE = 0x05;
 
-  static final int TYPE_BITS = PackedInts.bitsRequired(NUMERIC_DOUBLE);
+  static final int TYPE_BITS = PackedInts.bitsRequired(NUMERIC_DOUBLE); // NUMERIC_DOUBLE 为最大类型编号，最多需要 3 bits 来表示
   static final int TYPE_MASK = (int) PackedInts.maxValue(TYPE_BITS);
 
   static final int VERSION_START = 1;
@@ -80,21 +80,21 @@ public final class Lucene90CompressingStoredFieldsWriter extends StoredFieldsWri
   static final int META_VERSION_START = 0;
 
   private final String segment;
-  private FieldsIndexWriter indexWriter;
-  private IndexOutput metaStream, fieldsStream;
+  private FieldsIndexWriter indexWriter; // fdx
+  private IndexOutput metaStream, fieldsStream; // fdm, fdt. 细节：在当前类的构造方法中已经写入了 Header
 
   private Compressor compressor;
   private final CompressionMode compressionMode;
-  private final int chunkSize;
-  private final int maxDocsPerChunk;
+  private final int chunkSize; // chunk 最大值
+  private final int maxDocsPerChunk; // 每个 chunk 包含的最大文档数
 
-  private final ByteBuffersDataOutput bufferedDocs;
+  private final ByteBuffersDataOutput bufferedDocs; // 简单理解为字节数组，实际底层就是字节数组，缓存当前 chunk 序列化的 doc field 数据
   private int[] numStoredFields; // number of stored fields 表示每个doc包含的field数，下标位 docID-docBase
   private int[] endOffsets; // end offsets in bufferedDocs 下标是 docID - docBase，值为 doc 数据在 bufferedDocs 中的结束位置
   private int docBase; // doc ID at the beginning of the chunk
   private int numBufferedDocs; // docBase + numBufferedDocs == current doc ID
 
-  private long numChunks;
+  private long numChunks; // flush 的 chunk 数
   private long numDirtyChunks; // number of incomplete compressed blocks written
   private long numDirtyDocs; // cumulative number of missing docs in incomplete chunks
 
@@ -173,7 +173,7 @@ public final class Lucene90CompressingStoredFieldsWriter extends StoredFieldsWri
     }
   }
 
-  private int numStoredFieldsInDoc;
+  private int numStoredFieldsInDoc; // 当前正在处理 doc 的 field 数
 
   @Override
   public void startDocument() throws IOException {}
@@ -187,9 +187,9 @@ public final class Lucene90CompressingStoredFieldsWriter extends StoredFieldsWri
     }
     this.numStoredFields[numBufferedDocs] = numStoredFieldsInDoc; // 当前 doc 的 field 数
     numStoredFieldsInDoc = 0;
-    endOffsets[numBufferedDocs] = Math.toIntExact(bufferedDocs.size());
+    endOffsets[numBufferedDocs] = Math.toIntExact(bufferedDocs.size()); // 当前 doc 数据在缓存中的结束位置
     ++numBufferedDocs; //
-    if (triggerFlush()) {
+    if (triggerFlush()) { // 当前缓存中的文档数超过 1024 或数据量超过 80KB 则触发 flush
       flush(false);
     }
   }
@@ -210,11 +210,11 @@ public final class Lucene90CompressingStoredFieldsWriter extends StoredFieldsWri
       boolean sliced,
       boolean dirtyChunk)
       throws IOException {
-    final int slicedBit = sliced ? 1 : 0;
-    final int dirtyBit = dirtyChunk ? 2 : 0;
+    final int slicedBit = sliced ? 1 : 0; // 是否切片
+    final int dirtyBit = dirtyChunk ? 2 : 0; // 当前 chunk 是否是强制被 flush
     // save docBase and numBufferedDocs
-    fieldsStream.writeVInt(docBase);
-    fieldsStream.writeVInt((numBufferedDocs << 2) | dirtyBit | slicedBit);
+    fieldsStream.writeVInt(docBase); // 当前 chunk 的起始 doc
+    fieldsStream.writeVInt((numBufferedDocs << 2) | dirtyBit | slicedBit); // 这三个打包在一个int里面存储
 
     // save numStoredFields
     saveInts(numStoredFields, numBufferedDocs, fieldsStream);
@@ -223,7 +223,7 @@ public final class Lucene90CompressingStoredFieldsWriter extends StoredFieldsWri
     saveInts(lengths, numBufferedDocs, fieldsStream);
   }
 
-  private boolean triggerFlush() {
+  private boolean triggerFlush() { // 当前缓存中的文档数超过 1024 或数据量超过 80KB 则触发 flush
     return bufferedDocs.size() >= chunkSize
         || // chunks of at least chunkSize bytes
         numBufferedDocs >= maxDocsPerChunk;
@@ -236,15 +236,15 @@ public final class Lucene90CompressingStoredFieldsWriter extends StoredFieldsWri
       numDirtyChunks++; // incomplete: we had to force this flush
       numDirtyDocs += numBufferedDocs;
     }
-    indexWriter.writeIndex(numBufferedDocs, fieldsStream.getFilePointer());
+    indexWriter.writeIndex(numBufferedDocs, fieldsStream.getFilePointer()); // fdx 记录当前 chunk 的索引
 
     // transform end offsets into lengths
     final int[] lengths = endOffsets;
     for (int i = numBufferedDocs - 1; i > 0; --i) {
-      lengths[i] = endOffsets[i] - endOffsets[i - 1];
+      lengths[i] = endOffsets[i] - endOffsets[i - 1]; // 表示每个 doc 数据的长度
       assert lengths[i] >= 0;
     }
-    final boolean sliced = bufferedDocs.size() >= 2L * chunkSize;
+    final boolean sliced = bufferedDocs.size() >= 2L * chunkSize; // 当前缓存大于等于 160K 则需切片
     final boolean dirtyChunk = force;
     writeHeader(docBase, numBufferedDocs, numStoredFields, lengths, sliced, dirtyChunk);
     ByteBuffersDataInput bytebuffers = bufferedDocs.toDataInput();
@@ -258,7 +258,7 @@ public final class Lucene90CompressingStoredFieldsWriter extends StoredFieldsWri
         compressor.compress(bbdi, fieldsStream);
       }
     } else {
-      compressor.compress(bytebuffers, fieldsStream);
+      compressor.compress(bytebuffers, fieldsStream); // 压缩存储 chunk 数据 （LZ4 压缩）
     }
 
     // reset
@@ -272,7 +272,7 @@ public final class Lucene90CompressingStoredFieldsWriter extends StoredFieldsWri
 
     ++numStoredFieldsInDoc;
 
-    int bits = 0;
+    int bits = 0; // 表示 field 类型，不同类型的值会使用不同的编码方式
     final BytesRef bytes;
     final String string;
 
@@ -308,8 +308,8 @@ public final class Lucene90CompressingStoredFieldsWriter extends StoredFieldsWri
       }
     }
 
-    final long infoAndBits = (((long) info.number) << TYPE_BITS) | bits;
-    bufferedDocs.writeVLong(infoAndBits);
+    final long infoAndBits = (((long) info.number) << TYPE_BITS) | bits; // field 的编号和类型一起用一个 long 来存储
+    bufferedDocs.writeVLong(infoAndBits); // 写入当前处理的 field 信息
 
     if (bytes != null) {
       bufferedDocs.writeVInt(bytes.length);
@@ -318,11 +318,11 @@ public final class Lucene90CompressingStoredFieldsWriter extends StoredFieldsWri
       bufferedDocs.writeString(string);
     } else {
       if (number instanceof Byte || number instanceof Short || number instanceof Integer) {
-        bufferedDocs.writeZInt(number.intValue());
+        bufferedDocs.writeZInt(number.intValue()); // zig-zag + vint 编码
       } else if (number instanceof Long) {
-        writeTLong(bufferedDocs, number.longValue());
+        writeTLong(bufferedDocs, number.longValue()); // timestamp + zig-zig + vlong 编码
       } else if (number instanceof Float) {
-        writeZFloat(bufferedDocs, number.floatValue());
+        writeZFloat(bufferedDocs, number.floatValue()); // 这个编码可以研究下
       } else if (number instanceof Double) {
         writeZDouble(bufferedDocs, number.doubleValue());
       } else {
@@ -360,7 +360,7 @@ public final class Lucene90CompressingStoredFieldsWriter extends StoredFieldsWri
    */
   static void writeZFloat(DataOutput out, float f) throws IOException {
     int intVal = (int) f;
-    final int floatBits = Float.floatToIntBits(f);
+    final int floatBits = Float.floatToIntBits(f); // 将 float 的二进制转为 int
 
     if (f == intVal && intVal >= -1 && intVal <= 0x7D && floatBits != NEGATIVE_ZERO_FLOAT) {
       // small integer value [-1..125]: single byte

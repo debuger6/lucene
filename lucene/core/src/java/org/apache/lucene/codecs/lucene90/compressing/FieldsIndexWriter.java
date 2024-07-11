@@ -96,8 +96,8 @@ public final class FieldsIndexWriter implements Closeable {
 
   void writeIndex(int numDocs, long startPointer) throws IOException {
     assert startPointer >= previousFP;
-    docsOut.writeVInt(numDocs);
-    filePointersOut.writeVLong(startPointer - previousFP);
+    docsOut.writeVInt(numDocs); // 写入当前 chunk 的 doc 数
+    filePointersOut.writeVLong(startPointer - previousFP); // 写入当前 chunk 起始位置和上一个位置的差值
     previousFP = startPointer;
     totalDocs += numDocs;
     totalChunks++;
@@ -128,7 +128,7 @@ public final class FieldsIndexWriter implements Closeable {
           final DirectMonotonicWriter docs =
               DirectMonotonicWriter.getInstance(metaOut, dataOut, totalChunks + 1, blockShift);
           long doc = 0;
-          docs.add(doc);
+          docs.add(doc); // 从 0 开始，将 docNum 转为每个 trunk 的起始 docID 存如 fdx
           for (int i = 0; i < totalChunks; ++i) {
             doc += docsIn.readVInt();
             docs.add(doc);
