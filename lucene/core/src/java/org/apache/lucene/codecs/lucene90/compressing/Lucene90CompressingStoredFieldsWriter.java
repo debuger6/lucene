@@ -16,11 +16,10 @@
  */
 package org.apache.lucene.codecs.lucene90.compressing;
 
-import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.StoredFieldsReader;
 import org.apache.lucene.codecs.StoredFieldsWriter;
@@ -47,6 +46,8 @@ import org.apache.lucene.util.BitUtil;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.packed.PackedInts;
+
+import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 /**
  * {@link StoredFieldsWriter} impl for {@link Lucene90CompressingStoredFieldsFormat}.
@@ -88,8 +89,8 @@ public final class Lucene90CompressingStoredFieldsWriter extends StoredFieldsWri
   private final int maxDocsPerChunk;
 
   private final ByteBuffersDataOutput bufferedDocs;
-  private int[] numStoredFields; // number of stored fields
-  private int[] endOffsets; // end offsets in bufferedDocs
+  private int[] numStoredFields; // number of stored fields 表示每个doc包含的field数，下标位 docID-docBase
+  private int[] endOffsets; // end offsets in bufferedDocs 下标是 docID - docBase，值为 doc 数据在 bufferedDocs 中的结束位置
   private int docBase; // doc ID at the beginning of the chunk
   private int numBufferedDocs; // docBase + numBufferedDocs == current doc ID
 
@@ -178,16 +179,16 @@ public final class Lucene90CompressingStoredFieldsWriter extends StoredFieldsWri
   public void startDocument() throws IOException {}
 
   @Override
-  public void finishDocument() throws IOException {
+  public void finishDocument() throws IOException { // indexingChain 每处理完一个doc，会调到该方法
     if (numBufferedDocs == this.numStoredFields.length) {
       final int newLength = ArrayUtil.oversize(numBufferedDocs + 1, 4);
       this.numStoredFields = ArrayUtil.growExact(this.numStoredFields, newLength);
       endOffsets = ArrayUtil.growExact(endOffsets, newLength);
     }
-    this.numStoredFields[numBufferedDocs] = numStoredFieldsInDoc;
+    this.numStoredFields[numBufferedDocs] = numStoredFieldsInDoc; // 当前 doc 的 field 数
     numStoredFieldsInDoc = 0;
     endOffsets[numBufferedDocs] = Math.toIntExact(bufferedDocs.size());
-    ++numBufferedDocs;
+    ++numBufferedDocs; //
     if (triggerFlush()) {
       flush(false);
     }

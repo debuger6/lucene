@@ -29,7 +29,7 @@ import org.apache.lucene.search.ScoreDoc;
 
 import static org.apache.lucene.own.demo.utils.Utils.randomString;
 
-public class OnlyStoreField {
+public class StoreFieldDemo {
   public static void main(String[] args) throws IOException {
     Engine engine = Utils.engine("./data/store_field_demo");
     engine.batchIndex(genDocs(10000));
