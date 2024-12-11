@@ -19,6 +19,7 @@ package org.apache.lucene.own.demo;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -29,14 +30,19 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.StoredFields;
+import org.apache.lucene.index.Terms;
+import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.MMapDirectory;
+import org.apache.lucene.util.BytesRef;
 
 import static org.apache.lucene.index.IndexWriterConfig.OpenMode.CREATE;
 
@@ -113,4 +119,43 @@ public class Engine {
         IndexSearcher searcher = new IndexSearcher(reader);
         searcher.search(query, collector);
     }
+
+    public List<Integer> getTermPositions(String fieldName, String termText, int docID) throws IOException {
+        List<Integer> positions = new ArrayList<>();
+
+        DirectoryReader reader = DirectoryReader.open(this.directory);
+
+        // 遍历所有子阅读器
+        for (LeafReaderContext leaf : reader.leaves()) {
+            LeafReader leafReader = leaf.reader();
+
+            // 获取字段的 Terms
+            Terms terms = leafReader.terms(fieldName);
+            if (terms == null) {
+                System.out.println("No terms found for this field.");
+                continue;
+            }
+
+            // 查找词条
+            TermsEnum termsEnum = terms.iterator();
+            BytesRef term;
+            while ((term = termsEnum.next()) != null) {
+                if (term.utf8ToString().equals(termText)) {
+                    PostingsEnum postingsEnum = termsEnum.postings(null, PostingsEnum.POSITIONS);
+                    if (postingsEnum != null && postingsEnum.advance(docID) == docID) {
+                        int freq = postingsEnum.freq();
+                        System.out.println("Term '" + termText + "' found " + freq + " times in document " + docID + " at positions:");
+                        for (int i = 0; i < freq; i++) {
+                            int position = postingsEnum.nextPosition();
+                            positions.add(position);
+                        }
+                        System.out.println(positions);
+                    }
+                    break;
+                }
+            }
+        }
+        return positions;
+    }
+
 }

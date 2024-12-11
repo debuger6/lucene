@@ -16,15 +16,8 @@
  */
 package org.apache.lucene.codecs.lucene90;
 
-import static org.apache.lucene.codecs.lucene90.ForUtil.BLOCK_SIZE;
-import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.DOC_CODEC;
-import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.MAX_SKIP_LEVELS;
-import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.PAY_CODEC;
-import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.POS_CODEC;
-import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.TERMS_CODEC;
-import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.VERSION_CURRENT;
-
 import java.io.IOException;
+
 import org.apache.lucene.codecs.BlockTermState;
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.CompetitiveImpactAccumulator;
@@ -42,6 +35,14 @@ import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BitUtil;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IOUtils;
+
+import static org.apache.lucene.codecs.lucene90.ForUtil.BLOCK_SIZE;
+import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.DOC_CODEC;
+import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.MAX_SKIP_LEVELS;
+import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.PAY_CODEC;
+import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.POS_CODEC;
+import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.TERMS_CODEC;
+import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.VERSION_CURRENT;
 
 /**
  * Concrete class that writes docId(maybe frq,pos,offset,payloads) list with postings format.
@@ -212,7 +213,7 @@ public final class Lucene90PostingsWriter extends PushPostingsWriterBase {
     // Have collected a block of docs, and get a new doc.
     // Should write skip data as well as postings list for
     // current block.
-    if (lastBlockDocID != -1 && docBufferUpto == 0) {
+    if (lastBlockDocID != -1 && docBufferUpto == 0) { // doc 数每满一个 block，生成 skipData 并写入跳表 buffer
       skipWriter.bufferSkip(
           lastBlockDocID,
           competitiveFreqNormAccumulator,

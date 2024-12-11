@@ -30,11 +30,13 @@ import org.apache.lucene.own.demo.Engine;
 import org.apache.lucene.own.demo.utils.Utils;
 
 public class InvertedIndexDemo {
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) throws Exception {
     List<Document> documents = genDocs();
     Engine engine = Utils.engine("./data/inverted_index_demo");
     engine.batchIndex(documents);
     engine.commit();
+
+    List<Integer> positions = engine.getTermPositions("content", "lucene", 1111);
   }
 
   public static List<Document> genDocs() {
@@ -52,4 +54,6 @@ public class InvertedIndexDemo {
     }
     return documents;
   }
+
 }
+
