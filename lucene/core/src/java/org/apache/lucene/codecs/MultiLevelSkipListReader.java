@@ -45,13 +45,13 @@ public abstract class MultiLevelSkipListReader implements Closeable {
   private int docCount;
 
   /** skipStream for each level. */
-  private IndexInput[] skipStream;
+  private IndexInput[] skipStream; // 读取每层
 
   /** The start pointer of each skip level. */
   private long[] skipPointer;
 
   /** skipInterval of each level. */
-  private int[] skipInterval;
+  private int[] skipInterval; // 每层skipDatum的文档数间隔
 
   /**
    * Number of docs skipped per level. It's possible for some values to overflow a signed int, but
@@ -114,12 +114,12 @@ public abstract class MultiLevelSkipListReader implements Closeable {
     // walk up the levels until highest level is found that has a skip
     // for this target
     int level = 0;
-    while (level < numberOfSkipLevels - 1 && target > skipDoc[level + 1]) {
+    while (level < numberOfSkipLevels - 1 && target > skipDoc[level + 1]) { // 尽可能往高level找
       level++;
     }
 
     while (level >= 0) {
-      if (target > skipDoc[level]) {
+      if (target > skipDoc[level]) { // 大于当前层的当前 skipDoc，继续在当前层往后跳
         if (!loadNextSkip(level)) {
           continue;
         }
