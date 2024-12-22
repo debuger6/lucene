@@ -66,8 +66,8 @@ public final class Lucene90PostingsWriter extends PushPostingsWriterBase {
   private long posStartFP;
   private long payStartFP;
 
-  final long[] docDeltaBuffer;
-  final long[] freqBuffer;
+  final long[] docDeltaBuffer; // 存当前 block(128) 的 doc
+  final long[] freqBuffer; // 存当前 block 的词频
   private int docBufferUpto;
 
   final long[] posDeltaBuffer;
@@ -212,7 +212,7 @@ public final class Lucene90PostingsWriter extends PushPostingsWriterBase {
   public void startDoc(int docID, int termDocFreq) throws IOException {
     // Have collected a block of docs, and get a new doc.
     // Should write skip data as well as postings list for
-    // current block.
+    // current block. 注意 docBufferUpto 在 finishDoc 判断每处理完一个 block 后 reset
     if (lastBlockDocID != -1 && docBufferUpto == 0) { // doc 数每满一个 block，生成 skipData 并写入跳表 buffer
       skipWriter.bufferSkip(
           lastBlockDocID,
@@ -240,10 +240,10 @@ public final class Lucene90PostingsWriter extends PushPostingsWriterBase {
     docBufferUpto++;
     docCount++;
 
-    if (docBufferUpto == BLOCK_SIZE) {
-      pforUtil.encode(docDeltaBuffer, docOut);
+    if (docBufferUpto == BLOCK_SIZE) { // 每满一个 block 就写入 doc 文件
+      pforUtil.encode(docDeltaBuffer, docOut); // 写 doc 数组
       if (writeFreqs) {
-        pforUtil.encode(freqBuffer, docOut);
+        pforUtil.encode(freqBuffer, docOut); // 写词频数组
       }
       // NOTE: don't set docBufferUpto back to 0 here;
       // finishDoc will do so (because it needs to see that
@@ -346,7 +346,7 @@ public final class Lucene90PostingsWriter extends PushPostingsWriterBase {
         lastBlockPosBufferUpto = posBufferUpto;
         lastBlockPayloadByteUpto = payloadByteUpto;
       }
-      docBufferUpto = 0;
+      docBufferUpto = 0; // 每处理完一个 block 后 reset
     }
   }
 

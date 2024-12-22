@@ -16,17 +16,9 @@
  */
 package org.apache.lucene.codecs.lucene90;
 
-import static org.apache.lucene.codecs.lucene90.ForUtil.BLOCK_SIZE;
-import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.DOC_CODEC;
-import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.MAX_SKIP_LEVELS;
-import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.PAY_CODEC;
-import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.POS_CODEC;
-import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.TERMS_CODEC;
-import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.VERSION_CURRENT;
-import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.VERSION_START;
-
 import java.io.IOException;
 import java.util.Arrays;
+
 import org.apache.lucene.codecs.BlockTermState;
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.PostingsReaderBase;
@@ -45,6 +37,15 @@ import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BitUtil;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IOUtils;
+
+import static org.apache.lucene.codecs.lucene90.ForUtil.BLOCK_SIZE;
+import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.DOC_CODEC;
+import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.MAX_SKIP_LEVELS;
+import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.PAY_CODEC;
+import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.POS_CODEC;
+import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.TERMS_CODEC;
+import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.VERSION_CURRENT;
+import static org.apache.lucene.codecs.lucene90.Lucene90PostingsFormat.VERSION_START;
 
 /**
  * Concrete class that reads docId(maybe frq,pos,offset,payloads) list with postings format.
@@ -876,7 +877,7 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
           skipped = true;
         }
 
-        final int newDocUpto = skipper.skipTo(target) + 1;
+        final int newDocUpto = skipper.skipTo(target) + 1; // 计算得到当前 skipDatum 的 doc 所在 Block 的起始 doc
 
         if (newDocUpto > blockUpto - BLOCK_SIZE + docBufferUpto) {
           // Skipper moved
@@ -901,7 +902,7 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
 
       // Now scan:
       long doc;
-      while (true) {
+      while (true) { // 遍历 docBuffer 寻找满足条件的 doc，docBuffer 最后一个元素是 NO_MORE_DOC，所以一定不会死循环
         doc = docBuffer[docBufferUpto];
         freq = (int) freqBuffer[docBufferUpto];
         posPendingCount += freq;

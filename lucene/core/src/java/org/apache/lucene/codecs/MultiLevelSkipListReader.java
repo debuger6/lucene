@@ -66,7 +66,7 @@ public abstract class MultiLevelSkipListReader implements Closeable {
   private int lastDoc;
 
   /** Child pointer of current skip entry per level. */
-  private long[] childPointer;
+  private long[] childPointer; // 当前 level 的 skipDatum 指向的下层 skipDatum 的结尾位置
 
   /** childPointer of last read skip entry with docId &lt;= target. */
   private long lastChildPointer;
@@ -138,12 +138,12 @@ public abstract class MultiLevelSkipListReader implements Closeable {
   private boolean loadNextSkip(int level) throws IOException {
     // we have to skip, the target document is greater than the current
     // skip list entry
-    setLastSkipData(level);
+    setLastSkipData(level); // 跳过当前 skipDatum 并记录当前 skipDatum 的 doc 和 childPointer
 
-    numSkipped[level] += skipInterval[level];
+    numSkipped[level] += skipInterval[level]; // 当前层将要跳过的 doc 数（累计值）
 
     // numSkipped may overflow a signed int, so compare as unsigned.
-    if (Integer.compareUnsigned(numSkipped[level], docCount) > 0) {
+    if (Integer.compareUnsigned(numSkipped[level], docCount) > 0) { // 如果当前层将要跳过的 doc 数超过了总文档数
       // this skip list is exhausted
       skipDoc[level] = Integer.MAX_VALUE;
       if (numberOfSkipLevels > level) numberOfSkipLevels = level;
@@ -151,7 +151,7 @@ public abstract class MultiLevelSkipListReader implements Closeable {
     }
 
     // read next skip entry
-    skipDoc[level] += readSkipData(level, skipStream[level]);
+    skipDoc[level] += readSkipData(level, skipStream[level]); // 读取当前层的下一个 skipDatum
 
     if (level != 0) {
       // read the child pointer if we are not on the leaf level

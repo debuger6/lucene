@@ -46,7 +46,7 @@ import org.apache.lucene.store.IndexOutput;
  * uptos(position, payload). 4. start offset.
  */
 final class Lucene90SkipWriter extends MultiLevelSkipListWriter {
-  private int[] lastSkipDoc;
+  private int[] lastSkipDoc; // 记录每层上一个 skipDatum 的 doc
   private long[] lastSkipDocPointer;
   private long[] lastSkipPosPointer;
   private long[] lastSkipPayPointer;
@@ -57,7 +57,7 @@ final class Lucene90SkipWriter extends MultiLevelSkipListWriter {
   private final IndexOutput payOut;
 
   private int curDoc;
-  private long curDocPointer;
+  private long curDocPointer; // 记录当前正在处理的 skipDatum 的 doc 所在的 PackedBlock 起始地址
   private long curPosPointer;
   private long curPayPointer;
   private int curPosBufferUpto;
@@ -180,10 +180,10 @@ final class Lucene90SkipWriter extends MultiLevelSkipListWriter {
   @Override
   protected void writeSkipData(int level, DataOutput skipBuffer) throws IOException {
 
-    int delta = curDoc - lastSkipDoc[level];
+    int delta = curDoc - lastSkipDoc[level]; // 当前 skipDatum 和上一个 skipDatum 的 doc 差值
 
     skipBuffer.writeVInt(delta);
-    lastSkipDoc[level] = curDoc;
+    lastSkipDoc[level] = curDoc; // 更新当前层的 lastSkipDoc
 
     skipBuffer.writeVLong(curDocPointer - lastSkipDocPointer[level]);
     lastSkipDocPointer[level] = curDocPointer;

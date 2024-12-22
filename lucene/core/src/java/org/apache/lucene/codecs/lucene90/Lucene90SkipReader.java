@@ -49,7 +49,7 @@ import org.apache.lucene.store.IndexInput;
  * <p>Therefore, we'll trim df before passing it to the interface. see trim(int)
  */
 class Lucene90SkipReader extends MultiLevelSkipListReader {
-  private long[] docPointer;
+  private long[] docPointer; // 下标为 level，记录每层当前读到的 skipDatum 指向的 doc block 的尾部
   private long[] posPointer;
   private long[] payPointer;
   private int[] posBufferUpto;
