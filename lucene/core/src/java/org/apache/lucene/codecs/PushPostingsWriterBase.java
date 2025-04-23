@@ -129,35 +129,35 @@ public abstract class PushPostingsWriterBase extends PostingsWriterBase {
     int docFreq = 0;
     long totalTermFreq = 0;
     while (true) {
-      int docID = postingsEnum.nextDoc();
+      int docID = postingsEnum.nextDoc(); // 从 buffer 中读取 doc
       if (docID == PostingsEnum.NO_MORE_DOCS) {
         break;
       }
-      docFreq++;
-      docsSeen.set(docID);
+      docFreq++; // 累计文档频率
+      docsSeen.set(docID); // bitmap 用来统计 doc 的基数
       int freq;
       if (writeFreqs) {
-        freq = postingsEnum.freq();
-        totalTermFreq += freq;
+        freq = postingsEnum.freq(); // 读取term在当前doc中的词频
+        totalTermFreq += freq; // 累计总词频
       } else {
         freq = -1;
       }
-      startDoc(docID, freq);
+      startDoc(docID, freq); // 开始处理当前 doc 和 freq
 
       if (writePositions) {
-        for (int i = 0; i < freq; i++) {
-          int pos = postingsEnum.nextPosition();
-          BytesRef payload = writePayloads ? postingsEnum.getPayload() : null;
+        for (int i = 0; i < freq; i++) { // 一个 term 在一个 doc 中的词频大小和 position 数是一致的
+          int pos = postingsEnum.nextPosition();  // 读取 term 在该 doc 中的 pos
+          BytesRef payload = writePayloads ? postingsEnum.getPayload() : null; // 如果有 payload 则读取 payload
           int startOffset;
           int endOffset;
-          if (writeOffsets) {
+          if (writeOffsets) { // 如果有 offset 信息则读取（一般用于高亮）
             startOffset = postingsEnum.startOffset();
             endOffset = postingsEnum.endOffset();
           } else {
             startOffset = -1;
             endOffset = -1;
           }
-          addPosition(pos, payload, startOffset, endOffset);
+          addPosition(pos, payload, startOffset, endOffset); // 将这些信息写入 buffer，如果满足条件则刷入文件
         }
       }
 

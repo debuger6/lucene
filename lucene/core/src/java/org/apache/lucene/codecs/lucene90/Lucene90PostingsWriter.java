@@ -62,22 +62,22 @@ public final class Lucene90PostingsWriter extends PushPostingsWriterBase {
   IntBlockTermState lastState;
 
   // Holds starting file pointers for current term:
-  private long docStartFP;
-  private long posStartFP;
-  private long payStartFP;
+  private long docStartFP; // .doc 的当前起始位置
+  private long posStartFP; // .pos 的当前起始位置
+  private long payStartFP; // .pay 的当前起始位置
 
   final long[] docDeltaBuffer; // 存当前 block(128) 的 doc
   final long[] freqBuffer; // 存当前 block 的词频
-  private int docBufferUpto;
+  private int docBufferUpto; // 当前 docDeltaBuffer 待写入的下标
 
   final long[] posDeltaBuffer;
   final long[] payloadLengthBuffer;
   final long[] offsetStartDeltaBuffer;
   final long[] offsetLengthBuffer;
-  private int posBufferUpto;
+  private int posBufferUpto; // 代表当前 posDeltaBuffer，payloadLengthBuffer，offsetStartDeltaBuffer，offsetLengthBuffer 的下标
 
-  private byte[] payloadBytes;
-  private int payloadByteUpto;
+  private byte[] payloadBytes; // 存当前 block 的所有 payload，要结合 payloadLength 才能将 payload 解析出来
+  private int payloadByteUpto; // 代表 payloadBytes 当前写入下标
 
   private int lastBlockDocID;
   private long lastBlockPosFP;
@@ -225,25 +225,25 @@ public final class Lucene90PostingsWriter extends PushPostingsWriterBase {
       competitiveFreqNormAccumulator.clear();
     }
 
-    final int docDelta = docID - lastDocID;
+    final int docDelta = docID - lastDocID; // 和前一个处理的 doc 做差值
 
-    if (docID < 0 || (docCount > 0 && docDelta <= 0)) {
+    if (docID < 0 || (docCount > 0 && docDelta <= 0)) { // doc 是递增的，差值小于等于0是异常情况
       throw new CorruptIndexException(
           "docs out of order (" + docID + " <= " + lastDocID + " )", docOut);
     }
 
-    docDeltaBuffer[docBufferUpto] = docDelta;
+    docDeltaBuffer[docBufferUpto] = docDelta; // 将 docDelta 存入 buffer
     if (writeFreqs) {
-      freqBuffer[docBufferUpto] = termDocFreq;
+      freqBuffer[docBufferUpto] = termDocFreq; // 词频存入 buffer
     }
 
     docBufferUpto++;
-    docCount++;
+    docCount++; // 累计 doc 数
 
     if (docBufferUpto == BLOCK_SIZE) { // 每满一个 block 就写入 doc 文件
-      pforUtil.encode(docDeltaBuffer, docOut); // 写 doc 数组
+      pforUtil.encode(docDeltaBuffer, docOut); // 将 buffer 中的 doc 写入文件 .doc
       if (writeFreqs) {
-        pforUtil.encode(freqBuffer, docOut); // 写词频数组
+        pforUtil.encode(freqBuffer, docOut); // 将 buffer 中的 doc 写入文件 .doc
       }
       // NOTE: don't set docBufferUpto back to 0 here;
       // finishDoc will do so (because it needs to see that
@@ -270,7 +270,7 @@ public final class Lucene90PostingsWriter extends PushPostingsWriterBase {
       norm = 1L;
     }
 
-    competitiveFreqNormAccumulator.add(writeFreqs ? termDocFreq : 1, norm);
+    competitiveFreqNormAccumulator.add(writeFreqs ? termDocFreq : 1, norm);  // 挑选有竞争力的 norm 和 freq
   }
 
   @Override
@@ -321,7 +321,7 @@ public final class Lucene90PostingsWriter extends PushPostingsWriterBase {
         pforUtil.encode(payloadLengthBuffer, payOut);
         payOut.writeVInt(payloadByteUpto);
         payOut.writeBytes(payloadBytes, 0, payloadByteUpto);
-        payloadByteUpto = 0;
+        payloadByteUpto = 0; // payloadBytes 刷完后，从新从头开始写
       }
       if (writeOffsets) {
         pforUtil.encode(offsetStartDeltaBuffer, payOut);
@@ -336,13 +336,13 @@ public final class Lucene90PostingsWriter extends PushPostingsWriterBase {
     // Since we don't know df for current term, we had to buffer
     // those skip data for each block, and when a new doc comes,
     // write them to skip file.
-    if (docBufferUpto == BLOCK_SIZE) {
-      lastBlockDocID = lastDocID;
+    if (docBufferUpto == BLOCK_SIZE) { // 已处理满一个 block
+      lastBlockDocID = lastDocID; // 记录刚处理完的 block 的最后一个 doc
       if (posOut != null) {
         if (payOut != null) {
-          lastBlockPayFP = payOut.getFilePointer();
+          lastBlockPayFP = payOut.getFilePointer(); // 记录刚处理完的 payload block 在 .pay 的末尾指针
         }
-        lastBlockPosFP = posOut.getFilePointer();
+        lastBlockPosFP = posOut.getFilePointer(); // 记录刚处理完的 pos block 在 .pos 的末尾指针
         lastBlockPosBufferUpto = posBufferUpto;
         lastBlockPayloadByteUpto = payloadByteUpto;
       }

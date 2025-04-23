@@ -56,7 +56,7 @@ final class Lucene90SkipWriter extends MultiLevelSkipListWriter {
   private final IndexOutput posOut;
   private final IndexOutput payOut;
 
-  private int curDoc;
+  private int curDoc; // 记录当前 doc，writeSkipData 会使用
   private long curDocPointer; // 记录当前正在处理的 skipDatum 的 doc 所在的 PackedBlock 起始地址
   private long curPosPointer;
   private long curPayPointer;
@@ -165,10 +165,10 @@ final class Lucene90SkipWriter extends MultiLevelSkipListWriter {
       int payloadByteUpto)
       throws IOException {
     initSkip();
-    this.curDoc = doc;
-    this.curDocPointer = docOut.getFilePointer();
-    this.curPosPointer = posFP;
-    this.curPayPointer = payFP;
+    this.curDoc = doc; // 记录当前在处理的 doc
+    this.curDocPointer = docOut.getFilePointer(); // 记录当前 .doc 的文件指针
+    this.curPosPointer = posFP; // 记录当前 .pos 的文件指针
+    this.curPayPointer = payFP; // 记录当前 .pay 的文件指针
     this.curPosBufferUpto = posBufferUpto;
     this.curPayloadByteUpto = payloadByteUpto;
     this.curCompetitiveFreqNorms[0].addAll(competitiveFreqNorms);

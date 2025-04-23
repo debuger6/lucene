@@ -29,7 +29,7 @@ public class BlockTermState extends OrdTermState {
   /** how many docs have this term */
   public int docFreq;
   /** total number of occurrences of this term */
-  public long totalTermFreq;
+  public long totalTermFreq; // 当前term在所有文档中出现的总次数
 
   /** the term's ord in the current block */
   public int termBlockOrd;

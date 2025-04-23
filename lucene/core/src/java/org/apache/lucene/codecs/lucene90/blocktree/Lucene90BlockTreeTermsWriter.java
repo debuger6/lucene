@@ -586,7 +586,7 @@ public final class Lucene90BlockTreeTermsWriter extends FieldsConsumer {
   class TermsWriter {
     private final FieldInfo fieldInfo;
     private long numTerms;
-    final FixedBitSet docsSeen;
+    final FixedBitSet docsSeen; // 用来统计 doc 基数
     long sumTotalTermFreq;
     long sumDocFreq;
 

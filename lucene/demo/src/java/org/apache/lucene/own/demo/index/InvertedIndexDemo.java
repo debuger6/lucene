@@ -36,7 +36,7 @@ public class InvertedIndexDemo {
     engine.batchIndex(documents);
     engine.commit();
 
-    List<Integer> positions = engine.getTermPositions("content", "lucene", 1111);
+    List<Integer> positions = engine.getTermPositions("content", "lucene", 1023);
   }
 
   public static List<Document> genDocs() {
