@@ -19,6 +19,9 @@ package org.apache.lucene.own.demo.utils;
 
 import java.io.IOException;
 
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
 import org.apache.lucene.own.demo.Engine;
 
 public class Utils {
@@ -35,5 +38,11 @@ public class Utils {
       randomString.append(allCharacters.charAt(randomIndex));
     }
     return randomString.toString();
+  }
+
+  public static Document genSingleDocWithSingleField(String content) {
+    Document doc = new Document();
+    doc.add(new TextField("content", content, Field.Store.YES));
+    return doc;
   }
 }
