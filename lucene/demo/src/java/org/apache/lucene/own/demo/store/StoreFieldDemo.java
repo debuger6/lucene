@@ -34,6 +34,8 @@ public class StoreFieldDemo {
     Engine engine = Utils.engine("./data/store_field_demo");
     engine.batchIndex(genDocs(10000));
     engine.commit();
+    engine.batchIndex(genDocs(1000));
+    engine.commit();
 
     List<ScoreDoc> scoreDocs = engine.search(new MatchAllDocsQuery(), 10);
     for (ScoreDoc scoreDoc : scoreDocs) {

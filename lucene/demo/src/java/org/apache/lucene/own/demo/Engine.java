@@ -44,7 +44,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.BytesRef;
 
-import static org.apache.lucene.index.IndexWriterConfig.OpenMode.CREATE;
+import static org.apache.lucene.index.IndexWriterConfig.OpenMode.CREATE_OR_APPEND;
 
 public class Engine {
     // 用于索引的基本数据结构
@@ -64,7 +64,7 @@ public class Engine {
         // 初始化 IndexWriter
         IndexWriterConfig config = new IndexWriterConfig(analyzer).setUseCompoundFile(false);
         //config.setCodec(new SimpleTextCodec());
-        config.setOpenMode(CREATE);
+        config.setOpenMode(CREATE_OR_APPEND);
         this.writer = new IndexWriter(directory, config);
         //this.reader = DirectoryReader.open(this.writer);
         //this.searcher = new IndexSearcher(reader);

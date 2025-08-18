@@ -38,7 +38,7 @@ final class BlockMaxConjunctionScorer extends Scorer {
   BlockMaxConjunctionScorer(Weight weight, Collection<Scorer> scorersList) throws IOException {
     super(weight);
     this.scorers = scorersList.toArray(new Scorer[scorersList.size()]);
-    // Sort scorer by cost
+    // Sort scorer by cost 这里按照 iterator 的迭代开销升序排序，对应 posting 来说就是 term 对应的文档频率
     Arrays.sort(this.scorers, Comparator.comparingLong(s -> s.iterator().cost()));
     this.maxScorePropagator = new MaxScoreSumPropagator(Arrays.asList(scorers));
 
